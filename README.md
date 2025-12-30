@@ -308,6 +308,13 @@ Location: PaymentService::process
 
 ---
 
+## Testing
+
+Laravel Deadlock includes automated tests covering its core runtime and CI enforcement behavior.
+
+The test suite is built using PHPUnit and Orchestra Testbench to ensure correct behavior across supported Laravel versions.
+
+
 ## Production Safety
 
 Laravel Deadlock never enforces anything in production.
