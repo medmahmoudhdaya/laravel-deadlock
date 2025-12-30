@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Zidbih\Deadlock;
 
 use Illuminate\Support\ServiceProvider;
+use Illuminate\Contracts\Http\Kernel;
 use Zidbih\Deadlock\Console\ListDeadlocksCommand;
 use Zidbih\Deadlock\Console\CheckDeadlocksCommand;
 use Zidbih\Deadlock\Scanner\DeadlockScanner;
@@ -18,6 +19,11 @@ final class DeadlockServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        if ($this->app->environment('local')) {
+            $this->app->make(Kernel::class)
+                ->pushMiddleware(\Zidbih\Deadlock\Middleware\DeadlockGuardMiddleware::class);
+        }
+
         if ($this->app->runningInConsole()) {
             $this->commands([
                 ListDeadlocksCommand::class,
