@@ -10,13 +10,12 @@ use Illuminate\Support\Facades\App;
 use ReflectionClass;
 use ReflectionMethod;
 use Zidbih\Deadlock\Attributes\Workaround;
-use Zidbih\Deadlock\Exceptions\DeadlockExpiredException;
+use Zidbih\Deadlock\Exceptions\WorkaroundExpiredException;
 
 final class DeadlockGuardMiddleware
 {
     public function handle(Request $request, Closure $next)
     {
-        // Never enforce in non-local environments
         if (!App::environment('local')) {
             return $next($request);
         }
@@ -48,32 +47,36 @@ final class DeadlockGuardMiddleware
 
         $reflectionClass = new ReflectionClass($controller);
 
-        // Check class-level attributes
+        // Class-level attributes
         $this->inspectAttributes(
-            $reflectionClass->getAttributes(Workaround::class)
+            $reflectionClass->getAttributes(Workaround::class),
+            $reflectionClass->getName()
         );
 
         if (!$reflectionClass->hasMethod($method)) {
             return;
         }
 
-        // Check method-level attributes
         $reflectionMethod = new ReflectionMethod($controller, $method);
 
+        // Method-level attributes
         $this->inspectAttributes(
-            $reflectionMethod->getAttributes(Workaround::class)
+            $reflectionMethod->getAttributes(Workaround::class),
+            $reflectionClass->getName() . '::' . $reflectionMethod->getName()
         );
     }
 
-    private function inspectAttributes(array $attributes): void
+    private function inspectAttributes(array $attributes, string $location): void
     {
         foreach ($attributes as $attribute) {
             /** @var Workaround $instance */
             $instance = $attribute->newInstance();
 
             if (strtotime($instance->expires) < strtotime('today')) {
-                throw new DeadlockExpiredException(
-                    "Expired workaround: {$instance->description}"
+                throw new WorkaroundExpiredException(
+                    description: $instance->description,
+                    expires: $instance->expires,
+                    location: $location
                 );
             }
         }
