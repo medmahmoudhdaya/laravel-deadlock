@@ -6,6 +6,8 @@
     "require": {
         "php": "^8.2",
         "illuminate/support": "^10.0|^11.0",
+        "illuminate/console": "^10.0|^11.0",
+        "illuminate/http": "^10.0|^11.0",
         "nikic/php-parser": "^5.0"
     },
     "autoload": {
