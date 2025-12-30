@@ -128,8 +128,8 @@ This avoids magic behavior and performance issues.
 use Zidbih\Deadlock\Attributes\Workaround;
 
 #[Workaround(
-    'Legacy user controller awaiting refactor',
-    '2025-06-01'
+    description: 'Legacy user controller awaiting refactor',
+    expires: '2025-06-01'
 )]
 final class UserController extends Controller
 {
@@ -148,8 +148,8 @@ use Zidbih\Deadlock\Attributes\Workaround;
 final class UserController extends Controller
 {
     #[Workaround(
-        'Temporary validation bypass',
-        '2025-02-01'
+        description: 'Temporary validation bypass',
+        expires: '2025-02-01'
     )]
     public function store()
     {
@@ -175,8 +175,8 @@ use Zidbih\Deadlock\Attributes\Workaround;
 use Zidbih\Deadlock\Support\DeadlockGuard;
 
 #[Workaround(
-    'Temporary legacy pricing service',
-    '2025-01-01'
+    description: 'Temporary legacy pricing service',
+    expires: '2025-01-01'
 )]
 final class PricingService
 {
@@ -201,8 +201,8 @@ use Zidbih\Deadlock\Support\DeadlockGuard;
 final class PricingService
 {
     #[Workaround(
-        'Temporary calculation logic',
-        '2025-02-01'
+        description: 'Temporary calculation logic',
+        expires: '2025-02-01'
     )]
     public function calculate(): int
     {
