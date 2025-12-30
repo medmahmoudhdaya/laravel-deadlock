@@ -10,9 +10,18 @@
         "illuminate/http": "^10.0|^11.0|^12.0",
         "nikic/php-parser": "^5.0"
     },
+    "require-dev": {
+        "orchestra/testbench": "9.0",
+        "phpunit/phpunit": "^10.0"
+    },
     "autoload": {
         "psr-4": {
             "Zidbih\\Deadlock\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Zidbih\\Deadlock\\Tests\\": "tests/"
         }
     },
     "extra": {
