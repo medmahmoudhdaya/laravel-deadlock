@@ -10,17 +10,17 @@ Instead of relying on comments like `TODO` or forgotten tickets, Laravel Deadloc
 
 In most Laravel projects, temporary code is unavoidable:
 
-- legacy integrations
-- rushed fixes
-- temporary business rules
-- compatibility hacks
+- Legacy integrations
+- Rushed fixes
+- Temporary business rules
+- Compatibility hacks
 
 These workarounds usually start with good intentions, but over time:
 
-- deadlines are forgotten
-- context is lost
-- temporary code becomes permanent
-- no one knows what must be cleaned up
+- Deadlines are forgotten
+- Context is lost
+- Temporary code becomes permanent
+- No one knows what must be cleaned up
 
 Laravel Deadlock solves this by making technical debt explicit, visible, time-limited, and enforceable.
 
@@ -45,11 +45,11 @@ You explicitly mark the code:
 
 Laravel Deadlock then:
 
-- scans the codebase statically
-- lists all workarounds and their status
-- fails CI when a workaround expires
-- blocks local execution of expired code
-- never affects production
+- Scans the codebase statically
+- Lists all workarounds and their status
+- Fails CI when a workaround expires
+- Blocks local execution of expired code
+- Never affects production
 
 ---
 
@@ -72,8 +72,8 @@ YYYY-MM-DD
 Once the date is reached:
 
 - CI builds fail
-- local execution is blocked
-- the debt must be addressed intentionally
+- Local execution is blocked
+- The debt must be addressed intentionally
 
 ---
 
@@ -83,8 +83,7 @@ Once the date is reached:
 composer require zidbih/laravel-deadlock
 ```
 
-The package uses Laravel auto-discovery.
-No manual service provider registration is required.
+The package uses Laravel auto-discovery. No manual service provider registration is required.
 
 ---
 
@@ -108,21 +107,19 @@ This distinction is intentional and important.
 
 Controller classes and controller methods are automatically discovered and enforced at runtime.
 
-You only need to add the `#[Workaround]` attribute.
-No additional runtime code is required.
+You only need to add the `#[Workaround]` attribute. No additional runtime code is required.
 
 ### Other Classes (Explicit)
 
 For non-controller classes (services, jobs, listeners, commands, etc.), runtime enforcement is explicit by design.
 
-You must explicitly call the guard where enforcement should occur.
-This avoids magic behavior and performance issues.
+You must explicitly call the guard where enforcement should occur. This avoids magic behavior and performance issues.
 
 ---
 
 ## Controllers (Automatic Runtime Enforcement)
 
-### Class-level workaround
+### Class-Level Workaround
 
 ```php
 use Zidbih\Deadlock\Attributes\Workaround;
@@ -140,7 +137,7 @@ final class UserController extends Controller
 }
 ```
 
-### Method-level workaround
+### Method-Level Workaround
 
 ```php
 use Zidbih\Deadlock\Attributes\Workaround;
@@ -168,7 +165,7 @@ Import the guard:
 use Zidbih\Deadlock\Support\DeadlockGuard;
 ```
 
-### Class-level workaround (recommended in constructor)
+### Class-Level Workaround (Recommended in Constructor)
 
 ```php
 use Zidbih\Deadlock\Attributes\Workaround;
@@ -192,7 +189,7 @@ final class PricingService
 }
 ```
 
-### Method-level workaround (inside the method)
+### Method-Level Workaround (Inside the Method)
 
 ```php
 use Zidbih\Deadlock\Attributes\Workaround;
@@ -215,21 +212,99 @@ final class PricingService
 
 ---
 
-## Listing All Workarounds
+## Command Reference
+
+### List All Workarounds
 
 ```bash
 php artisan deadlock:list
 ```
 
+This command is informational. It scans the codebase and lists all detected workarounds with their current status.
+
+#### Example Output
+
+```
++---------+------------+------------------------------+-------------------------------------------+
+| Status  | Expires    | Location                     | Description                               |
++---------+------------+------------------------------+-------------------------------------------+
+| OK      | 2026-01-01 | UserController               | Legacy controller awaiting refactor       |
+| OK      | 2026-01-01 | OrderService                 | Temporary pricing rules                   |
+| EXPIRED | 2025-02-10 | PaymentService::process      | Temporary payment gateway workaround      |
+| OK      | 2026-01-01 | UserController::store        | Temporary validation bypass               |
++---------+------------+------------------------------+-------------------------------------------+
+```
+
+#### Output Columns
+
+- **Status**: `OK` means the workaround is still valid; `EXPIRED` means the expiration date has passed
+- **Expires**: The deadline for removing or refactoring the workaround
+- **Location**: The class name or `Class::method`
+- **Description**: A human-readable explanation of why the workaround exists
+
+This command does not modify any code or throw exceptions.
+
 ---
 
-## CI / CD Enforcement
+### CI/CD Enforcement
 
 ```bash
 php artisan deadlock:check
 ```
 
-This command fails the build if any workaround is expired.
+This command is enforcement-focused and designed for CI/CD pipelines.
+
+#### Case 1: No Expired Workarounds
+
+```
+No expired workarounds found.
+```
+
+**Exit code:** `0`  
+**CI result:** PASS
+
+---
+
+#### Case 2: Expired Workarounds Detected
+
+```
+Expired workarounds detected:
+
+    Temporary payment gateway workaround | expires: 2025-02-10 | PaymentService::process
+
+    Legacy admin controller | expires: 2025-01-31 | AdminController
+```
+
+**Exit code:** `1`  
+**CI result:** FAIL
+
+This means:
+
+- At least one workaround has passed its expiration date
+- The build is intentionally blocked
+- The technical debt must be addressed before merging
+
+---
+
+## Runtime Enforcement Example (Local Only)
+
+When an expired workaround is executed locally (either in a controller or a guarded service), Laravel Deadlock throws an exception immediately.
+
+### Example Exception Output
+
+```
+WorkaroundExpiredException
+
+Expired workaround detected: "Temporary payment gateway workaround"
+Expired on: 2025-02-10
+Location: PaymentService::process
+```
+
+**Important notes:**
+
+- This happens only in the `local` environment
+- It never happens in production
+- It provides immediate feedback to developers
 
 ---
 
@@ -239,10 +314,10 @@ Laravel Deadlock never enforces anything in production.
 
 ---
 
-## Supported Versions
+## Requirements
 
-- PHP 8.2+
-- Laravel 10, 11, 12
+- **PHP:** 8.2+
+- **Laravel:** 10, 11, 12
 
 ---
 
