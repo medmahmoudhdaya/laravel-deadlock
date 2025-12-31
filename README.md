@@ -1,6 +1,10 @@
-# Laravel Deadlock
+## Laravel Deadlock
 
-Laravel Deadlock is a Laravel package that helps teams manage technical debt intentionally by allowing developers to mark temporary workaround code with an expiration date and enforce it automatically.
+Have you ever shipped a “temporary” workaround and completely forgot about it?
+Have you ever said “we’ll fix this later” and later never came?
+
+Laravel Deadlock is a Laravel package that helps teams manage technical debt intentionally.
+It allows developers to mark temporary workaround code with an expiration date and enforce it automatically.
 
 Instead of relying on comments like `TODO` or forgotten tickets, Laravel Deadlock turns technical debt into explicit, time-boxed, enforceable rules.
 
