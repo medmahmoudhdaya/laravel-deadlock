@@ -1,6 +1,6 @@
 {
     "name": "zidbih/laravel-deadlock",
-    "description": "Time-boxed technical debt enforcement using PHP attributes",
+    "description": "Make temporary Laravel workarounds expire and fail CI when ignored.",
     "type": "library",
     "license": "MIT",
     "require": {
