@@ -1,6 +1,16 @@
 {
     "name": "zidbih/laravel-deadlock",
     "description": "Make temporary Laravel workarounds expire and fail CI when ignored.",
+    "keywords": [
+        "laravel",
+        "technical debt",
+        "workaround",
+        "temporary fix",
+        "todo",
+        "ci enforcement",
+        "code expiration",
+        "maintainability"
+    ],
     "type": "library",
     "license": "MIT",
     "require": {
