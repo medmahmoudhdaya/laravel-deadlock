@@ -30,6 +30,6 @@ final class DeadlockResult
             return $this->class;
         }
 
-        return $this->file . ':' . $this->line;
+        return $this->file.':'.$this->line;
     }
 }

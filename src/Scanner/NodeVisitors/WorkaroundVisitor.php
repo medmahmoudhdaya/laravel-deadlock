@@ -23,13 +23,13 @@ final class WorkaroundVisitor extends NodeVisitorAbstract
         }
 
         // Only classes and methods can have Workaround attributes
-        if (!($node instanceof Node\Stmt\Class_ || $node instanceof Node\Stmt\ClassMethod)) {
+        if (! ($node instanceof Node\Stmt\Class_ || $node instanceof Node\Stmt\ClassMethod)) {
             return;
         }
 
         foreach ($node->attrGroups as $group) {
             foreach ($group->attrs as $attribute) {
-                if (!$this->isWorkaroundAttribute($attribute->name->toString())) {
+                if (! $this->isWorkaroundAttribute($attribute->name->toString())) {
                     continue;
                 }
 

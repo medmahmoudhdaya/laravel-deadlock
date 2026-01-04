@@ -14,12 +14,12 @@ final class DeadlockGuard
     /**
      * Enforce expired workaround checks at runtime.
      *
-     * @param object|string $target  Object instance or class name
-     * @param string|null   $method  Method name (explicit, optional)
+     * @param  object|string  $target  Object instance or class name
+     * @param  string|null  $method  Method name (explicit, optional)
      */
     public static function check(object|string $target, ?string $method = null): void
     {
-        if (!App::environment('local')) {
+        if (! App::environment('local')) {
             return;
         }
 
@@ -27,7 +27,7 @@ final class DeadlockGuard
             ? $target::class
             : $target;
 
-        if (!class_exists($className)) {
+        if (! class_exists($className)) {
             return;
         }
 
@@ -45,15 +45,11 @@ final class DeadlockGuard
 
             self::inspectAttributes(
                 $reflectionMethod->getAttributes(Workaround::class),
-                $className . '::' . $method
+                $className.'::'.$method
             );
         }
     }
 
-    /**
-     * @param array  $attributes
-     * @param string $location
-     */
     private static function inspectAttributes(array $attributes, string $location): void
     {
         foreach ($attributes as $attribute) {

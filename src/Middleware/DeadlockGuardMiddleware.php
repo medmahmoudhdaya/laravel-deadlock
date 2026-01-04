@@ -16,19 +16,19 @@ final class DeadlockGuardMiddleware
 {
     public function handle(Request $request, Closure $next)
     {
-        if (!App::environment('local')) {
+        if (! App::environment('local')) {
             return $next($request);
         }
 
         $route = $request->route();
 
-        if (!$route) {
+        if (! $route) {
             return $next($request);
         }
 
         $action = $route->getAction('controller');
 
-        if (!is_string($action) || !str_contains($action, '@')) {
+        if (! is_string($action) || ! str_contains($action, '@')) {
             return $next($request);
         }
 
@@ -41,7 +41,7 @@ final class DeadlockGuardMiddleware
 
     private function checkController(string $controller, string $method): void
     {
-        if (!class_exists($controller)) {
+        if (! class_exists($controller)) {
             return;
         }
 
@@ -53,7 +53,7 @@ final class DeadlockGuardMiddleware
             $reflectionClass->getName()
         );
 
-        if (!$reflectionClass->hasMethod($method)) {
+        if (! $reflectionClass->hasMethod($method)) {
             return;
         }
 
@@ -62,7 +62,7 @@ final class DeadlockGuardMiddleware
         // Method-level attributes
         $this->inspectAttributes(
             $reflectionMethod->getAttributes(Workaround::class),
-            $reflectionClass->getName() . '::' . $reflectionMethod->getName()
+            $reflectionClass->getName().'::'.$reflectionMethod->getName()
         );
     }
 

@@ -5,12 +5,13 @@ declare(strict_types=1);
 namespace Zidbih\Deadlock\Console;
 
 use Illuminate\Console\Command;
-use Zidbih\Deadlock\Scanner\DeadlockScanner;
 use Zidbih\Deadlock\Scanner\DeadlockResult;
+use Zidbih\Deadlock\Scanner\DeadlockScanner;
 
 final class CheckDeadlocksCommand extends Command
 {
     protected $signature = 'deadlock:check';
+
     protected $description = 'Fail if any technical debt workaround is expired';
 
     public function handle(DeadlockScanner $scanner): int
@@ -24,6 +25,7 @@ final class CheckDeadlocksCommand extends Command
 
         if (empty($expired)) {
             $this->info('No expired workarounds found.');
+
             return self::SUCCESS;
         }
 

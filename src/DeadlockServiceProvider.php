@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 namespace Zidbih\Deadlock;
 
-use Illuminate\Support\ServiceProvider;
 use Illuminate\Contracts\Http\Kernel;
-use Zidbih\Deadlock\Console\ListDeadlocksCommand;
+use Illuminate\Support\ServiceProvider;
 use Zidbih\Deadlock\Console\CheckDeadlocksCommand;
+use Zidbih\Deadlock\Console\ListDeadlocksCommand;
 use Zidbih\Deadlock\Middleware\DeadlockGuardMiddleware;
 use Zidbih\Deadlock\Scanner\DeadlockScanner;
 

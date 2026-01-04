@@ -4,12 +4,12 @@ declare(strict_types=1);
 
 namespace Zidbih\Deadlock\Scanner;
 
-use PhpParser\ParserFactory;
 use PhpParser\NodeTraverser;
-use Zidbih\Deadlock\Scanner\NodeVisitors\WorkaroundVisitor;
+use PhpParser\ParserFactory;
 use RecursiveDirectoryIterator;
 use RecursiveIteratorIterator;
 use SplFileInfo;
+use Zidbih\Deadlock\Scanner\NodeVisitors\WorkaroundVisitor;
 
 final class DeadlockScanner
 {
@@ -18,7 +18,7 @@ final class DeadlockScanner
      */
     public function scan(string $path): array
     {
-        $parser = (new ParserFactory())->createForNewestSupportedVersion();
+        $parser = (new ParserFactory)->createForNewestSupportedVersion();
         $results = [];
 
         $iterator = new RecursiveIteratorIterator(
@@ -27,7 +27,7 @@ final class DeadlockScanner
 
         /** @var SplFileInfo $file */
         foreach ($iterator as $file) {
-            if (!$file->isFile() || $file->getExtension() !== 'php') {
+            if (! $file->isFile() || $file->getExtension() !== 'php') {
                 continue;
             }
 
@@ -48,8 +48,8 @@ final class DeadlockScanner
                 continue;
             }
 
-            $visitor = new WorkaroundVisitor();
-            $traverser = new NodeTraverser();
+            $visitor = new WorkaroundVisitor;
+            $traverser = new NodeTraverser;
             $traverser->addVisitor($visitor);
             $traverser->traverse($ast);
 

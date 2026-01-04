@@ -13,7 +13,7 @@ final class DeadlockScannerTest extends TestCase
     {
         $scanner = $this->app->make(DeadlockScanner::class);
 
-        $results = $scanner->scan(__DIR__ . '/../Fixtures');
+        $results = $scanner->scan(__DIR__.'/../Fixtures');
 
         $this->assertNotEmpty($results);
     }

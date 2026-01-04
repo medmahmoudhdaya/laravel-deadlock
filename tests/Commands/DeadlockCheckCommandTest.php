@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace Zidbih\Deadlock\Tests\Commands;
 
-use Zidbih\Deadlock\Tests\TestCase;
 use Illuminate\Support\Facades\File;
+use Zidbih\Deadlock\Tests\TestCase;
 
 final class DeadlockCheckCommandTest extends TestCase
 {
@@ -14,12 +14,12 @@ final class DeadlockCheckCommandTest extends TestCase
         // 1. Create an expired workaround inside app/
         $path = app_path('ExpiredTestService.php');
 
-        File::put($path, <<<PHP
+        File::put($path, <<<'PHP'
             <?php
 
             namespace App;
 
-            use Zidbih\\Deadlock\\Attributes\\Workaround;
+            use Zidbih\Deadlock\Attributes\Workaround;
 
             #[Workaround(
                 description: 'Expired test workaround',
@@ -27,7 +27,7 @@ final class DeadlockCheckCommandTest extends TestCase
             )]
             class ExpiredTestService {}
             PHP
-                    );
+        );
 
         // 2. Run the command
         $this->artisan('deadlock:check')
