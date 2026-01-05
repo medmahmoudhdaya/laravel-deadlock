@@ -1,83 +1,36 @@
-## Laravel Deadlock
+# Laravel Deadlock
 
-Have you ever shipped a “temporary” workaround and completely forgot about it?
-Have you ever said “we’ll fix this later” and later never came?
+Have you ever shipped a **temporary workaround** and completely forgot about it?  
+Have you ever said *“we’ll fix this later”* and later never came?
 
-Laravel Deadlock is a Laravel package that helps teams manage technical debt intentionally.
-It allows developers to mark temporary workaround code with an expiration date and enforce it automatically.
+**Laravel Deadlock** is a Laravel package that helps teams manage technical debt intentionally.
 
-Instead of relying on comments like `TODO` or forgotten tickets, Laravel Deadlock turns technical debt into explicit, time-boxed, enforceable rules.
+It allows developers to mark temporary workaround code with an **expiration date** and enforce it automatically.
 
----
-
-## The Problem
-
-In most Laravel projects, temporary code is unavoidable:
-
-- Legacy integrations
-- Rushed fixes
-- Temporary business rules
-- Compatibility hacks
-
-These workarounds usually start with good intentions, but over time:
-
-- Deadlines are forgotten
-- Context is lost
-- Temporary code becomes permanent
-- No one knows what must be cleaned up
-
-Laravel Deadlock solves this by making technical debt explicit, visible, time-limited, and enforceable.
+Instead of relying on comments like `TODO` or forgotten tickets, Laravel Deadlock turns technical debt into **explicit, time-boxed, enforceable rules**.
 
 ---
 
 ## The Idea
 
-Instead of writing comments like:
+Instead of relying on comments like:
 
-```php
-// TODO: remove this later
-```
+    // TODO: remove this later
 
-You explicitly mark the code:
+You explicitly mark temporary code using an attribute:
 
-```php
-#[Workaround(
-    description: 'Temporary bypass for legacy payment gateway',
-    expires: '2025-03-01'
-)]
-```
+    #[Workaround(
+        description: 'Temporary bypass for legacy payment gateway',
+        expires: '2025-03-01'
+    )]
 
 Laravel Deadlock then:
 
-- Scans the codebase statically
-- Lists all workarounds and their status
-- Fails CI when a workaround expires
-- Blocks local execution of expired code
-- Never affects production
-
----
-
-## Key Concepts
-
-### Workaround
-
-A workaround is any piece of code that is known to be temporary and must be removed or refactored before a specific date.
-
-Laravel Deadlock represents workarounds using PHP 8 attributes.
-
-### Expiration Date
-
-Each workaround has a required expiration date in the following format:
-
-```
-YYYY-MM-DD
-```
-
-Once the date is reached:
-
-- CI builds fail
-- Local execution is blocked
-- The debt must be addressed intentionally
+- Scans the codebase statically  
+- Reports all workarounds and their status  
+- Fails CI when a workaround expires  
+- Blocks local execution of expired code  
+- Never enforces in production  
 
 ---
 
@@ -87,125 +40,103 @@ Once the date is reached:
 composer require zidbih/laravel-deadlock
 ```
 
-The package uses Laravel auto-discovery. No manual service provider registration is required.
+### Requirements
+
+- PHP: **8.2+**
+- Laravel: **10, 11, 12**
 
 ---
 
-## Marking Workarounds
+## Quick Start
 
-Import the attribute:
+Import the attribute and apply it to a class or method.
 
 ```php
 use Zidbih\Deadlock\Attributes\Workaround;
+
+#[Workaround(
+    description: 'Temporary bypass for legacy payment gateway',
+    expires: '2025-03-01'
+)]
+class PaymentService
+{
+    // ...
+}
 ```
+
+### What happens when it expires?
+
+- **Local Development**: Execution is blocked with an exception  
+- **CI/CD**: Pipelines fail when running the check command  
+- **Production**: No effect — safe by design  
 
 ---
 
-## Automatic vs Explicit Enforcement
+## Enforcement Modes
 
-Laravel Deadlock distinguishes between controllers and all other classes.
+Laravel Deadlock distinguishes between different class types to keep performance high while enforcing debt where it matters most.
 
-This distinction is intentional and important.
+---
 
-### Controllers (Automatic)
+### 1. Controllers (Automatic)
 
 Controller classes and controller methods are automatically discovered and enforced at runtime.
 
 You only need to add the `#[Workaround]` attribute. No additional runtime code is required.
 
-### Other Classes (Explicit)
-
-For non-controller classes (services, jobs, listeners, commands, etc.), runtime enforcement is explicit by design.
-
-You must explicitly call the guard where enforcement should occur. This avoids magic behavior and performance issues.
-
----
-
-## Controllers (Automatic Runtime Enforcement)
-
-### Class-Level Workaround
-
 ```php
+namespace App\Http\Controllers;
+
 use Zidbih\Deadlock\Attributes\Workaround;
 
-#[Workaround(
-    description: 'Legacy user controller awaiting refactor',
-    expires: '2025-06-01'
-)]
+#[Workaround(description: 'Legacy controller awaiting refactor', expires: '2025-06-01')]
 final class UserController extends Controller
 {
-    public function index()
-    {
-        // controller logic
-    }
-}
-```
-
-### Method-Level Workaround
-
-```php
-use Zidbih\Deadlock\Attributes\Workaround;
-
-final class UserController extends Controller
-{
-    #[Workaround(
-        description: 'Temporary validation bypass',
-        expires: '2025-02-01'
-    )]
+    #[Workaround(description: 'Temporary validation bypass', expires: '2025-02-01')]
     public function store()
     {
-        // workaround logic
+        //...
     }
 }
 ```
 
 ---
 
-## Services and Other Classes (Explicit Runtime Enforcement)
+### 2. Services & Other Classes (Explicit)
 
-Import the guard:
+For services, jobs, commands, and other non-controller classes, enforcement is **explicit by design**.  
+The guard must be called intentionally, eliminating hidden behavior and avoiding unnecessary performance overhead.
 
-```php
-use Zidbih\Deadlock\Support\DeadlockGuard;
-```
-
-### Class-Level Workaround (Recommended in Constructor)
+#### Class-Level Enforcement
 
 ```php
+namespace App\Services;
+
 use Zidbih\Deadlock\Attributes\Workaround;
 use Zidbih\Deadlock\Support\DeadlockGuard;
 
-#[Workaround(
-    description: 'Temporary legacy pricing service',
-    expires: '2025-01-01'
-)]
+#[Workaround(description: 'Temporary legacy pricing service', expires: '2025-01-01')]
 final class PricingService
 {
     public function __construct()
     {
         DeadlockGuard::check($this);
     }
-
-    public function calculate(): int
-    {
-        return 42;
-    }
 }
 ```
 
-### Method-Level Workaround (Inside the Method)
+#### Method-Level Enforcement
 
 ```php
+namespace App\Services;
+
 use Zidbih\Deadlock\Attributes\Workaround;
 use Zidbih\Deadlock\Support\DeadlockGuard;
 
 final class PricingService
 {
-    #[Workaround(
-        description: 'Temporary calculation logic',
-        expires: '2025-02-01'
-    )]
-    public function calculate(): int
+    #[Workaround(description: 'Temporary calculation logic', expires: '2025-02-01')]
+    public function calculate()
     {
         DeadlockGuard::check($this, __FUNCTION__);
 
@@ -216,17 +147,17 @@ final class PricingService
 
 ---
 
-## Command Reference
+## Artisan Commands
 
 ### List All Workarounds
+
+Scans the codebase and displays all detected workarounds.
 
 ```bash
 php artisan deadlock:list
 ```
 
-This command is informational. It scans the codebase and lists all detected workarounds with their current status.
-
-#### Example Output
+**Example output:**
 
 ```
 +---------+------------+------------------------------+-------------------------------------------+
@@ -239,99 +170,63 @@ This command is informational. It scans the codebase and lists all detected work
 +---------+------------+------------------------------+-------------------------------------------+
 ```
 
-#### Output Columns
-
-- **Status**: `OK` means the workaround is still valid; `EXPIRED` means the expiration date has passed
-- **Expires**: The deadline for removing or refactoring the workaround
-- **Location**: The class name or `Class::method`
-- **Description**: A human-readable explanation of why the workaround exists
-
-This command does not modify any code or throw exceptions.
-
 ---
 
-### CI/CD Enforcement
+## CI/CD Enforcement
+
+The `deadlock:check` command is built for automated pipelines and **fails with exit code 1** as soon as an expired workaround is detected, making technical debt a hard blocker in CI/CD.
 
 ```bash
 php artisan deadlock:check
 ```
 
-This command is enforcement-focused and designed for CI/CD pipelines.
-
-#### Case 1: No Expired Workarounds
-
-```
-No expired workarounds found.
-```
-
-**Exit code:** `0`  
-**CI result:** PASS
-
----
-
-#### Case 2: Expired Workarounds Detected
+**Example failure output:**
 
 ```
 Expired workarounds detected:
 
-    Temporary payment gateway workaround | expires: 2025-02-10 | PaymentService::process
-
-    Legacy admin controller | expires: 2025-01-31 | AdminController
+- Temporary payment gateway workaround | expires: 2025-02-10 | PaymentService::process
+- Legacy admin controller | expires: 2025-01-31 | AdminController
 ```
-
-**Exit code:** `1`  
-**CI result:** FAIL
-
-This means:
-
-- At least one workaround has passed its expiration date
-- The build is intentionally blocked
-- The technical debt must be addressed before merging
 
 ---
 
-## Runtime Enforcement Example (Local Only)
+## Runtime Enforcement (Local Only)
 
-When an expired workaround is executed locally (either in a controller or a guarded service), Laravel Deadlock throws an exception immediately.
+When an expired workaround is accessed locally, a  
+`WorkaroundExpiredException` is thrown with:
 
-### Example Exception Output
+- Description
+- Expiration date
+- Exact code location
 
-```
-WorkaroundExpiredException
+This provides immediate and unmissable feedback during development.
+> Example of the exception thrown when an expired workaround is accessed locally.
 
-Expired workaround detected: "Temporary payment gateway workaround"
-Expired on: 2025-02-10
-Location: PaymentService::process
-```
+![Expired workaround exception](docs/images/workaround-exception.png)
 
-**Important notes:**
+---
 
-- This happens only in the `local` environment
-- It never happens in production
-- It provides immediate feedback to developers
+## Production Safety
+
+Laravel Deadlock **never enforces debt in production**.
+
+- Runtime exceptions only occur in **local** environments
+- CI blocks merges before debt reaches production
+- Live users are never affected
 
 ---
 
 ## Testing
 
-Laravel Deadlock includes automated tests covering its core runtime and CI enforcement behavior.
-
-The test suite is built using PHPUnit and Orchestra Testbench to ensure correct behavior across supported Laravel versions.
-
-
-## Production Safety
-
-Laravel Deadlock never enforces anything in production.
-
----
-
-## Requirements
-
-- **PHP:** 8.2+
-- **Laravel:** 10, 11, 12
+The test suite uses **PHPUnit** and **Orchestra Testbench** to ensure compatibility across all supported Laravel versions.
 
 ---
 
 ## License
 
-MIT
+[MIT](LICENSE)
+
+## Contributing
+
+See [CONTRIBUTING.md](CONTRIBUTING.md)
