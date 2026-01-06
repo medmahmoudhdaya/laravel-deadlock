@@ -16,6 +16,8 @@ final class ListDeadlocksCommand extends Command
 
     public function handle(DeadlockScanner $scanner): int
     {
+        $this->info('Scanning for workarounds...');
+
         $results = $scanner->scan(app_path());
 
         if (empty($results)) {
