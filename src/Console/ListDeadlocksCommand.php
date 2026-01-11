@@ -10,7 +10,9 @@ use Zidbih\Deadlock\Scanner\DeadlockScanner;
 
 final class ListDeadlocksCommand extends Command
 {
-    protected $signature = 'deadlock:list';
+    protected $signature = 'deadlock:list
+    {--expired : Show only expired workarounds}
+    {--active : Show only active (non-expired) workarounds}';
 
     protected $description = 'List all technical debt workarounds';
 
