@@ -18,12 +18,39 @@ final class ListDeadlocksCommand extends Command
 
     public function handle(DeadlockScanner $scanner): int
     {
+        if ($this->option('expired') && $this->option('active')) {
+            $this->error('You cannot use --expired and --active together.');
+
+            return self::INVALID;
+        }
+
         $this->info('Scanning for workarounds...');
 
         $results = $scanner->scan(app_path());
 
         if (empty($results)) {
             $this->info('No workarounds found.');
+
+            return self::SUCCESS;
+        }
+
+        $filtered = array_filter(
+            $results,
+            function (DeadlockResult $result): bool {
+                if ($this->option('expired')) {
+                    return $result->isExpired();
+                }
+
+                if ($this->option('active')) {
+                    return ! $result->isExpired();
+                }
+
+                return true;
+            }
+        );
+
+        if (empty($filtered)) {
+            $this->info('No matching workarounds found.');
 
             return self::SUCCESS;
         }
@@ -35,7 +62,7 @@ final class ListDeadlocksCommand extends Command
                 $r->expires,
                 $r->location(),
                 $r->description,
-            ], $results)
+            ], $filtered)
         );
 
         return self::SUCCESS;
