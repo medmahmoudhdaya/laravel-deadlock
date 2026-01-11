@@ -11,7 +11,6 @@ final class DeadlockCheckCommandTest extends TestCase
 {
     public function test_deadlock_check_fails_when_expired(): void
     {
-        // 1. Create an expired workaround inside app/
         $path = app_path('ExpiredTestService.php');
 
         File::put($path, <<<'PHP'
@@ -29,11 +28,9 @@ final class DeadlockCheckCommandTest extends TestCase
             PHP
         );
 
-        // 2. Run the command
         $this->artisan('deadlock:check')
             ->assertExitCode(1);
 
-        // 3. Cleanup
         File::delete($path);
     }
 }
