@@ -152,6 +152,7 @@ final class PricingService
 ### List All Workarounds
 
 Scans the codebase and displays all detected workarounds.
+By default, all workarounds are shown.
 
 ```bash
 php artisan deadlock:list
@@ -170,6 +171,17 @@ php artisan deadlock:list
 +---------+------------+------------------------------+-------------------------------------------+
 ```
 
+### Filter expired workarounds
+
+```bash
+php artisan deadlock:list --expired
+```
+
+### Filter active workarounds
+
+``` bash
+php artisan deadlock:list --active
+```
 ---
 
 ## CI/CD Enforcement
