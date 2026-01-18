@@ -59,7 +59,9 @@ final class ListDeadlocksCommand extends Command
             ['Status', 'Expires', 'Location', 'Description'],
             array_map(fn (DeadlockResult $r) => [
                 $r->isExpired() ? 'EXPIRED' : 'OK',
-                $r->expires,
+                $r->isExpired()
+                    ? "<fg=red>{$r->expires}</>"
+                    : $r->expires,
                 $r->location(),
                 $r->description,
             ], $filtered)
