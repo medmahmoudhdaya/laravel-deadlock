@@ -186,11 +186,13 @@ php artisan deadlock:list --active
 
 ## CI/CD Enforcement
 
-The `deadlock:check` command is built for automated pipelines and **fails with exit code 1** as soon as an expired workaround is detected, making technical debt a hard blocker in CI/CD.
+Run the check command in your CI pipeline:
 
 ```bash
 php artisan deadlock:check
 ```
+
+If an expired workaround is found, the command exits with **code 1** and the pipeline fails.
 
 **Example failure output:**
 
@@ -199,6 +201,13 @@ Expired workarounds detected:
 
 - Temporary payment gateway workaround | expires: 2025-02-10 | PaymentService::process
 - Legacy admin controller | expires: 2025-01-31 | AdminController
+```
+
+### CI example
+
+```yaml
+- name: Deadlock check
+  run: php artisan deadlock:check
 ```
 
 ---
