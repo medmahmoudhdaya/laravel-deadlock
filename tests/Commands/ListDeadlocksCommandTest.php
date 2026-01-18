@@ -89,4 +89,33 @@ PHP
             ->assertExitCode(2)
             ->expectsOutputToContain('You cannot use --expired and --active together.');
     }
+
+    public function test_list_command_throws_on_invalid_expires_date_format(): void
+    {
+        $invalidPath = app_path('InvalidDateListTestService.php');
+
+        File::put($invalidPath, <<<'PHP'
+    <?php
+
+    namespace App;
+
+    use Zidbih\Deadlock\Attributes\Workaround;
+
+    #[Workaround(
+        description: 'Invalid date list test workaround',
+        expires: '01-31-2025'
+    )]
+    class InvalidDateListTestService {}
+    PHP
+        );
+
+        try {
+            $this->expectException(\InvalidArgumentException::class);
+            $this->expectExceptionMessage("Invalid expires date '01-31-2025'. Expected YYYY-MM-DD.");
+
+            $this->artisan('deadlock:list');
+        } finally {
+            File::delete($invalidPath);
+        }
+    }
 }
