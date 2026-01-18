@@ -4,7 +4,11 @@ declare(strict_types=1);
 
 namespace Zidbih\Deadlock\Scanner\NodeVisitors;
 
+use DateTimeImmutable;
+use DateTimeZone;
+use InvalidArgumentException;
 use PhpParser\Node;
+use PhpParser\Node\Scalar\String_;
 use PhpParser\NodeVisitorAbstract;
 use Zidbih\Deadlock\Scanner\DeadlockResult;
 
@@ -40,9 +44,31 @@ final class WorkaroundVisitor extends NodeVisitorAbstract
                     continue;
                 }
 
+                $descNode = $args[0]->value;
+                $expNode = $args[1]->value;
+
+                if (! $descNode instanceof String_) {
+                    throw new InvalidArgumentException('Workaround description must be a string literal.');
+                }
+
+                if (! $expNode instanceof String_) {
+                    throw new InvalidArgumentException('Workaround expires must be a string literal in YYYY-MM-DD format.');
+                }
+
+                if (! preg_match('/^\d{4}-\d{2}-\d{2}$/', $expNode->value)) {
+                    throw new InvalidArgumentException("Invalid expires date '{$expNode->value}'. Expected YYYY-MM-DD.");
+                }
+
+                $dt = DateTimeImmutable::createFromFormat('!Y-m-d', $expNode->value, new DateTimeZone('UTC'));
+                $errors = DateTimeImmutable::getLastErrors();
+
+                if ($dt === false || ($errors['warning_count'] ?? 0) > 0 || ($errors['error_count'] ?? 0) > 0) {
+                    throw new InvalidArgumentException("Invalid expires date '{$expNode->value}'.");
+                }
+
                 $this->results[] = new DeadlockResult(
-                    description: $args[0]->value->value,
-                    expires: $args[1]->value->value,
+                    description: $descNode->value,
+                    expires: $expNode->value,
                     file: '', // injected later by scanner
                     line: $node->getLine(),
                     class: $this->currentClass,
