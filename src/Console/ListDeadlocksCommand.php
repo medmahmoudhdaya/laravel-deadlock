@@ -13,6 +13,7 @@ final class ListDeadlocksCommand extends Command
 {
     protected $signature = 'deadlock:list
     {--expired : Show only expired workarounds}
+    {--critical : Show only critical workarounds (expiring in <= 7 days)}
     {--active : Show only active (non-expired) workarounds}';
 
     protected $description = 'List all technical debt workarounds';
@@ -40,6 +41,11 @@ final class ListDeadlocksCommand extends Command
                 if ($this->option('expired')) {
                     return $result->isExpired();
                 }
+
+                if ($this->option('critical')) {
+                    return $this->isCritical($result);
+                }
+
                 if ($this->option('active')) {
                     return ! $result->isExpired();
                 }
@@ -78,10 +84,22 @@ final class ListDeadlocksCommand extends Command
 
         $dayLabel = $days === 1 ? 'day' : 'days';
 
-        if ($days <= 7) {
+        if ($this->isCritical($r)) {
             return "<fg=yellow;options=bold>⚠ CRITICAL</> ({$days} {$dayLabel} left)";
         }
 
         return "<fg=green>✓ ACTIVE</> ({$days} {$dayLabel} left)";
+    }
+
+    private function isCritical(DeadlockResult $result): bool
+    {
+        if ($result->isExpired()) {
+            return false;
+        }
+
+        $deadline = Carbon::parse($result->expires);
+        $daysRemaining = (int) now()->startOfDay()->diffInDays($deadline->startOfDay(), false);
+
+        return $daysRemaining <= 7 && $daysRemaining >= 0;
     }
 }
