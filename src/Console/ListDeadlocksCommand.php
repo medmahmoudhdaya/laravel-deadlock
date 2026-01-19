@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Zidbih\Deadlock\Console;
 
 use Illuminate\Console\Command;
+use Illuminate\Support\Carbon;
 use Zidbih\Deadlock\Scanner\DeadlockResult;
 use Zidbih\Deadlock\Scanner\DeadlockScanner;
 
@@ -34,39 +35,53 @@ final class ListDeadlocksCommand extends Command
             return self::SUCCESS;
         }
 
-        $filtered = array_filter(
-            $results,
-            function (DeadlockResult $result): bool {
+        $data = collect($results)
+            ->filter(function (DeadlockResult $result) {
                 if ($this->option('expired')) {
                     return $result->isExpired();
                 }
-
                 if ($this->option('active')) {
                     return ! $result->isExpired();
                 }
 
                 return true;
-            }
-        );
+            })
+            ->sortBy('expires');
 
-        if (empty($filtered)) {
+        if ($data->isEmpty()) {
             $this->info('No matching workarounds found.');
 
             return self::SUCCESS;
         }
 
         $this->table(
-            ['Status', 'Expires', 'Location', 'Description'],
-            array_map(fn (DeadlockResult $r) => [
-                $r->isExpired() ? 'EXPIRED' : 'OK',
-                $r->isExpired()
-                    ? "<fg=red>{$r->expires}</>"
-                    : $r->expires,
+            ['Urgency', 'Expires', 'Location', 'Description'],
+            $data->map(fn (DeadlockResult $r) => [
+                $this->getUrgencyTag($r),
+                $r->isExpired() ? "<fg=red>{$r->expires}</>" : $r->expires,
                 $r->location(),
                 $r->description,
-            ], $filtered)
+            ])->toArray()
         );
 
         return self::SUCCESS;
+    }
+
+    private function getUrgencyTag(DeadlockResult $r): string
+    {
+        if ($r->isExpired()) {
+            return '<fg=red;options=bold>✖ EXPIRED</>';
+        }
+
+        $deadline = Carbon::parse($r->expires);
+        $days = (int) now()->startOfDay()->diffInDays($deadline->startOfDay(), false);
+
+        $dayLabel = $days === 1 ? 'day' : 'days';
+
+        if ($days <= 7) {
+            return "<fg=yellow;options=bold>⚠ CRITICAL</> ({$days} {$dayLabel} left)";
+        }
+
+        return "<fg=green>✓ ACTIVE</> ({$days} {$dayLabel} left)";
     }
 }
