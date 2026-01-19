@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace Zidbih\Deadlock\Tests\Commands;
 
+use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
 use Zidbih\Deadlock\Tests\TestCase;
+
 
 final class ListDeadlocksCommandTest extends TestCase
 {
@@ -21,33 +23,33 @@ final class ListDeadlocksCommandTest extends TestCase
         $this->activePath = app_path('ActiveListTestService.php');
 
         File::put($this->expiredPath, <<<'PHP'
-<?php
+        <?php
 
-namespace App;
+        namespace App;
 
-use Zidbih\Deadlock\Attributes\Workaround;
+        use Zidbih\Deadlock\Attributes\Workaround;
 
-#[Workaround(
-    description: 'Expired list test workaround',
-    expires: '2020-01-01'
-)]
-class ExpiredListTestService {}
-PHP
+        #[Workaround(
+            description: 'Expired list test workaround',
+            expires: '2020-01-01'
+        )]
+        class ExpiredListTestService {}
+        PHP
         );
 
         File::put($this->activePath, <<<'PHP'
-<?php
+        <?php
 
-namespace App;
+        namespace App;
 
-use Zidbih\Deadlock\Attributes\Workaround;
+        use Zidbih\Deadlock\Attributes\Workaround;
 
-#[Workaround(
-    description: 'Active list test workaround',
-    expires: '2099-01-01'
-)]
-class ActiveListTestService {}
-PHP
+        #[Workaround(
+            description: 'Active list test workaround',
+            expires: '2099-01-01'
+        )]
+        class ActiveListTestService {}
+        PHP
         );
     }
 
@@ -118,4 +120,80 @@ PHP
             File::delete($invalidPath);
         }
     }
+
+
+    public function test_list_command_filters_critical_workarounds(): void
+    {
+        $criticalPath = app_path('CriticalTest.php');
+        $nonCriticalPath = app_path('NonCriticalTest.php');
+
+        $criticalExpires = now()->addDays(5)->format('Y-m-d');   // should be included
+        $activeExpires   = now()->addDays(30)->format('Y-m-d');  // should be excluded
+
+        File::put($criticalPath, <<<PHP
+    <?php
+
+    namespace App;
+
+    use Zidbih\Deadlock\Attributes\Workaround;
+
+    #[Workaround(description: 'Critical test workaround', expires: '{$criticalExpires}')]
+    class CriticalTest {}
+    PHP
+        );
+
+        File::put($nonCriticalPath, <<<PHP
+    <?php
+
+    namespace App;
+
+    use Zidbih\Deadlock\Attributes\Workaround;
+
+    #[Workaround(description: 'Non critical test workaround', expires: '{$activeExpires}')]
+    class NonCriticalTest {}
+    PHP
+        );
+
+        try {
+            $this->artisan('deadlock:list --critical')
+                ->assertExitCode(0)
+                ->expectsOutputToContain('Critical test workaround')
+                ->doesntExpectOutputToContain('Non critical test workaround')
+                ->doesntExpectOutputToContain('Expired list test workaround')
+                ->doesntExpectOutputToContain('Active list test workaround');
+        } finally {
+            File::delete($criticalPath);
+            File::delete($nonCriticalPath);
+        }
+    }
+
+
+    public function test_list_command_sorts_by_date_by_default(): void
+    {
+        // Run and capture output, then assert relative order.
+        Artisan::call('deadlock:list');
+        $output = Artisan::output();
+
+        $this->assertNotSame('', $output);
+
+        $posExpired = strpos($output, 'Expired list test workaround');
+        $posActive  = strpos($output, 'Active list test workaround');
+
+        $this->assertIsInt($posExpired);
+        $this->assertIsInt($posActive);
+
+        $this->assertTrue(
+            $posExpired < $posActive,
+            'Expected expired workaround to appear before active workaround in the output.'
+        );
+    }
+
+    public function test_list_command_displays_urgency_tags_correctly(): void
+    {
+        $this->artisan('deadlock:list')
+            ->assertExitCode(0)
+            ->expectsOutputToContain('EXPIRED')
+            ->expectsOutputToContain('ACTIVE');
+    }
+
 }
