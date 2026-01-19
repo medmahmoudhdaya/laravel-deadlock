@@ -8,7 +8,6 @@ use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\File;
 use Zidbih\Deadlock\Tests\TestCase;
 
-
 final class ListDeadlocksCommandTest extends TestCase
 {
     private string $expiredPath;
@@ -121,14 +120,13 @@ final class ListDeadlocksCommandTest extends TestCase
         }
     }
 
-
     public function test_list_command_filters_critical_workarounds(): void
     {
         $criticalPath = app_path('CriticalTest.php');
         $nonCriticalPath = app_path('NonCriticalTest.php');
 
         $criticalExpires = now()->addDays(5)->format('Y-m-d');   // should be included
-        $activeExpires   = now()->addDays(30)->format('Y-m-d');  // should be excluded
+        $activeExpires = now()->addDays(30)->format('Y-m-d');  // should be excluded
 
         File::put($criticalPath, <<<PHP
     <?php
@@ -167,7 +165,6 @@ final class ListDeadlocksCommandTest extends TestCase
         }
     }
 
-
     public function test_list_command_sorts_by_date_by_default(): void
     {
         // Run and capture output, then assert relative order.
@@ -177,7 +174,7 @@ final class ListDeadlocksCommandTest extends TestCase
         $this->assertNotSame('', $output);
 
         $posExpired = strpos($output, 'Expired list test workaround');
-        $posActive  = strpos($output, 'Active list test workaround');
+        $posActive = strpos($output, 'Active list test workaround');
 
         $this->assertIsInt($posExpired);
         $this->assertIsInt($posActive);
@@ -195,5 +192,4 @@ final class ListDeadlocksCommandTest extends TestCase
             ->expectsOutputToContain('EXPIRED')
             ->expectsOutputToContain('ACTIVE');
     }
-
 }
