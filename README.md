@@ -160,18 +160,11 @@ php artisan deadlock:list
 
 **Example output:**
 
-```
-+---------+------------+------------------------------+-------------------------------------------+
-| Status  | Expires    | Location                     | Description                               |
-+---------+------------+------------------------------+-------------------------------------------+
-| OK      | 2026-01-01 | UserController               | Legacy controller awaiting refactor       |
-| OK      | 2026-01-01 | OrderService                 | Temporary pricing rules                   |
-| EXPIRED | 2025-02-10 | PaymentService::process      | Temporary payment gateway workaround      |
-| OK      | 2026-01-01 | UserController::store        | Temporary validation bypass               |
-+---------+------------+------------------------------+-------------------------------------------+
-```
+![List command output](docs/images/list-command-output.png)
 
 ### Filter expired workarounds
+
+Show only workarounds that have passed their expiration date.
 
 ```bash
 php artisan deadlock:list --expired
@@ -179,8 +172,18 @@ php artisan deadlock:list --expired
 
 ### Filter active workarounds
 
+Show only non-expired workarounds.
+
 ``` bash
 php artisan deadlock:list --active
+```
+
+### Filter critical workarounds
+
+Show only workarounds expiring in **7 days or less**.
+
+``` bash
+php artisan deadlock:list --critical
 ```
 ---
 
