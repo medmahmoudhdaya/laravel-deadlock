@@ -66,7 +66,7 @@ final class ListDeadlocksCommand extends Command
                 $this->getUrgencyTag($r),
                 $r->isExpired() ? "<fg=red>{$r->expires}</>" : $r->expires,
                 $r->location(),
-                $r->description,
+                $this->formatDescription($r->description),
             ])->toArray()
         );
 
@@ -101,5 +101,17 @@ final class ListDeadlocksCommand extends Command
         $daysRemaining = (int) now()->startOfDay()->diffInDays($deadline->startOfDay(), false);
 
         return $daysRemaining <= 7 && $daysRemaining >= 0;
+    }
+
+    private function formatDescription(string $description, int $max = 80): string
+    {
+        $normalized = trim(preg_replace('/\s+/u', ' ', $description) ?? '');
+
+        if (mb_strlen($normalized) <= $max) {
+            return $normalized;
+        }
+
+        // Keep room for the ellipsis character.
+        return mb_substr($normalized, 0, max(0, $max - 1)).'…';
     }
 }
