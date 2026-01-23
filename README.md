@@ -63,6 +63,10 @@ class PaymentService
     // ...
 }
 ```
+>**Note**  
+> The `#[Workaround]` attribute is supported on **classes and methods only**.  
+> Workarounds placed inside functions or other scopes will be ignored.
+
 
 ### What happens when it expires?
 

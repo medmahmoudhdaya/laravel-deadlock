@@ -32,6 +32,7 @@ final class ListDeadlocksCommand extends Command
 
         if (empty($results)) {
             $this->info('No workarounds found.');
+            $this->comment('Note: #[Workaround] is supported on classes and methods only.');
 
             return self::SUCCESS;
         }
