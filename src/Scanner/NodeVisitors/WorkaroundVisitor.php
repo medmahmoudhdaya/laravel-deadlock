@@ -39,7 +39,7 @@ final class WorkaroundVisitor extends NodeVisitorAbstract
 
                 $args = $attribute->args;
 
-                // We expect exactly two scalar string arguments
+                // We expect exactly two string arguments: description and expires (YYYY-MM-DD)
                 if (count($args) !== 2) {
                     throw new InvalidArgumentException(
                         'Workaround attribute must receive exactly 2 arguments: description and expires.'
