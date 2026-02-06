@@ -66,7 +66,7 @@ final class ListDeadlocksCommand extends Command
             $data->map(fn (DeadlockResult $r) => [
                 $this->getUrgencyTag($r),
                 $r->isExpired() ? "<fg=red>{$r->expires}</>" : $r->expires,
-                $r->location(),
+                $this->formatLocation($r),
                 $this->formatDescription($r->description),
             ])->toArray()
         );
@@ -114,5 +114,18 @@ final class ListDeadlocksCommand extends Command
 
         // Keep room for the ellipsis character.
         return mb_substr($normalized, 0, max(0, $max - 1)).'…';
+    }
+
+    private function formatLocation(DeadlockResult $result): string
+    {
+        $location = $result->location();
+        $fileLine = $result->file.':'.$result->line;
+
+        // If location is already file:line, return it as-is.
+        if ($location === $fileLine) {
+            return $location;
+        }
+
+        return $location.' (line '.$result->line.')';
     }
 }
