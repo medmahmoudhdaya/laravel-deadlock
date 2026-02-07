@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace Zidbih\Deadlock\Tests\Commands;
 
 use Illuminate\Support\Facades\Artisan;
+use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\File;
 use Zidbih\Deadlock\Tests\TestCase;
 
@@ -17,6 +18,8 @@ final class ListDeadlocksCommandTest extends TestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        Date::setTestNow(Date::create(2025, 1, 1, 12, 0, 0, 'UTC'));
 
         $this->expiredPath = app_path('ExpiredListTestService.php');
         $this->activePath = app_path('ActiveListTestService.php');
@@ -56,6 +59,8 @@ final class ListDeadlocksCommandTest extends TestCase
     {
         File::delete($this->expiredPath);
         File::delete($this->activePath);
+
+        Date::setTestNow();
 
         parent::tearDown();
     }
@@ -125,8 +130,8 @@ final class ListDeadlocksCommandTest extends TestCase
         $criticalPath = app_path('CriticalTest.php');
         $nonCriticalPath = app_path('NonCriticalTest.php');
 
-        $criticalExpires = now()->addDays(5)->format('Y-m-d');   // should be included
-        $activeExpires = now()->addDays(30)->format('Y-m-d');  // should be excluded
+        $criticalExpires = '2025-01-06';   // should be included (5 days after test now)
+        $activeExpires = '2025-01-31';  // should be excluded (30 days after test now)
 
         File::put($criticalPath, <<<PHP
     <?php
@@ -191,5 +196,12 @@ final class ListDeadlocksCommandTest extends TestCase
             ->assertExitCode(0)
             ->expectsOutputToContain('EXPIRED')
             ->expectsOutputToContain('ACTIVE');
+    }
+
+    public function test_list_command_shows_line_numbers_in_location(): void
+    {
+        $this->artisan('deadlock:list')
+            ->assertExitCode(0)
+            ->expectsOutputToContain('ExpiredListTestService (line ');
     }
 }

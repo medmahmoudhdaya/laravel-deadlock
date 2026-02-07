@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Zidbih\Deadlock\Support;
 
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\App;
 use ReflectionClass;
 use Zidbih\Deadlock\Attributes\Workaround;
@@ -56,7 +57,9 @@ final class DeadlockGuard
             /** @var Workaround $instance */
             $instance = $attribute->newInstance();
 
-            if (strtotime($instance->expires) < strtotime('today')) {
+            $deadline = Carbon::parse($instance->expires)->startOfDay();
+
+            if (now()->startOfDay()->gt($deadline)) {
                 throw new WorkaroundExpiredException(
                     description: $instance->description,
                     expires: $instance->expires,

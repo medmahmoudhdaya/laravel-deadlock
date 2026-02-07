@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace Zidbih\Deadlock\Scanner;
 
+use Illuminate\Support\Carbon;
+
 final class DeadlockResult
 {
     public function __construct(
@@ -17,7 +19,9 @@ final class DeadlockResult
 
     public function isExpired(): bool
     {
-        return strtotime($this->expires) < strtotime('today');
+        $deadline = Carbon::parse($this->expires)->startOfDay();
+
+        return now()->startOfDay()->gt($deadline);
     }
 
     public function location(): string

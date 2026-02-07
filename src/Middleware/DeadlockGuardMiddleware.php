@@ -6,6 +6,7 @@ namespace Zidbih\Deadlock\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\App;
 use ReflectionClass;
 use ReflectionMethod;
@@ -72,7 +73,9 @@ final class DeadlockGuardMiddleware
             /** @var Workaround $instance */
             $instance = $attribute->newInstance();
 
-            if (strtotime($instance->expires) < strtotime('today')) {
+            $deadline = Carbon::parse($instance->expires)->startOfDay();
+
+            if (now()->startOfDay()->gt($deadline)) {
                 throw new WorkaroundExpiredException(
                     description: $instance->description,
                     expires: $instance->expires,
