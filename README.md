@@ -1,7 +1,12 @@
+<div align="center">
+
 # Laravel Deadlock
 
 ![Packagist Version](https://img.shields.io/packagist/v/zidbih/laravel-deadlock)
 ![Packagist Downloads](https://img.shields.io/packagist/dt/zidbih/laravel-deadlock)
+![Packagist License](https://img.shields.io/packagist/l/zidbih/laravel-deadlock)
+
+</div>
 
 Have you ever shipped a **temporary workaround** and completely forgot about it?  
 Have you ever said *“we’ll fix this later”* and later never came?
