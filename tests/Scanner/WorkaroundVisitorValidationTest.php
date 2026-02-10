@@ -29,8 +29,8 @@ namespace Zidbih\Deadlock\Tests\Scanner;
 
 use Illuminate\Support\Facades\File;
 use InvalidArgumentException;
-use Zidbih\Deadlock\Scanner\FileReadHook;
 use Zidbih\Deadlock\Scanner\DeadlockScanner;
+use Zidbih\Deadlock\Scanner\FileReadHook;
 use Zidbih\Deadlock\Tests\TestCase;
 
 final class WorkaroundVisitorValidationTest extends TestCase
