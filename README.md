@@ -5,7 +5,8 @@
 ![Packagist Version](https://img.shields.io/packagist/v/zidbih/laravel-deadlock)
 ![Packagist Downloads](https://img.shields.io/packagist/dt/zidbih/laravel-deadlock)
 ![Packagist License](https://img.shields.io/packagist/l/zidbih/laravel-deadlock)
-[![codecov](https://codecov.io/gh/medmahmoudhdaya/laravel-deadlock/branch/main/graph/badge.svg)](https://codecov.io/gh/medmahmoudhdaya/laravel-deadlock)
+[![codecov](https://codecov.io/gh/medmahmoudhdaya/laravel-deadlock/graph/badge.svg)](https://codecov.io/gh/medmahmoudhdaya/laravel-deadlock)
+
 
 </div>
 
