@@ -6,6 +6,7 @@ namespace Zidbih\Deadlock\Console;
 
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
+use Symfony\Component\Console\Helper\ProgressIndicator;
 use Zidbih\Deadlock\Scanner\DeadlockResult;
 use Zidbih\Deadlock\Scanner\DeadlockScanner;
 
@@ -26,9 +27,22 @@ final class ListDeadlocksCommand extends Command
             return self::INVALID;
         }
 
-        $this->info('Scanning for workarounds...');
+        $indicator = new ProgressIndicator($this->output);
+
+        if ($this->output->isDecorated()) {
+            $indicator->start('<fg=cyan>Scanning for workarounds...</>');
+        } else {
+            $this->info('Scanning for workarounds...');
+        }
 
         $results = $scanner->scan(app_path());
+
+        if ($this->output->isDecorated()) {
+            $indicator->finish('<fg=green>Scan complete.</>');
+            $this->line('');
+        } else {
+            $this->info('Scan complete.');
+        }
 
         if (empty($results)) {
             $this->info('No workarounds found.');
