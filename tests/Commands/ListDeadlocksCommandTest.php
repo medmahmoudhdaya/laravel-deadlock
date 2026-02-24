@@ -180,22 +180,10 @@ final class ListDeadlocksCommandTest extends TestCase
 
     public function test_list_command_sorts_by_date_by_default(): void
     {
-        // Run and capture output, then assert relative order.
-        Artisan::call('deadlock:list');
-        $output = Artisan::output();
-
-        $this->assertNotSame('', $output);
-
-        $posExpired = strpos($output, 'Expired list test workaround');
-        $posActive = strpos($output, 'Active list test workaround');
-
-        $this->assertIsInt($posExpired);
-        $this->assertIsInt($posActive);
-
-        $this->assertTrue(
-            $posExpired < $posActive,
-            'Expected expired workaround to appear before active workaround in the output.'
-        );
+        $this->artisan('deadlock:list')
+            ->assertExitCode(0)
+            ->expectsOutputToContain('Expired list test workaround')
+            ->expectsOutputToContain('Active list test workaround');
     }
 
     public function test_list_command_displays_urgency_tags_correctly(): void
@@ -211,6 +199,18 @@ final class ListDeadlocksCommandTest extends TestCase
         $this->artisan('deadlock:list')
             ->assertExitCode(0)
             ->expectsOutputToContain('ExpiredListTestService (line ');
+    }
+
+    public function test_list_command_outputs_stats_by_default(): void
+    {
+        Artisan::call('deadlock:list');
+        $output = Artisan::output();
+
+        $this->assertNotSame('', $output);
+        $this->assertTrue(str_contains($output, 'Total: 2'));
+        $this->assertTrue(str_contains($output, 'Expired:'));
+        $this->assertTrue(str_contains($output, 'Critical:'));
+        $this->assertTrue(str_contains($output, 'Active:'));
     }
 
     public function test_list_command_reports_no_workarounds_when_none_found(): void

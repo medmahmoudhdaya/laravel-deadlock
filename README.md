@@ -166,6 +166,10 @@ Show workarounds expiring in **7 days or less**:
 php artisan deadlock:list --critical
 ```
 
+### Stats
+
+The list command now includes a summary line by default, showing totals at a glance.
+
 ---
 
 ## CI/CD Enforcement

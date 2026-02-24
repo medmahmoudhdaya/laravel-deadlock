@@ -55,6 +55,8 @@ final class ListDeadlocksCommand extends Command
             })
             ->sortBy('expires');
 
+        $this->renderStats($data);
+
         if ($data->isEmpty()) {
             $this->info('No matching workarounds found.');
 
@@ -127,5 +129,36 @@ final class ListDeadlocksCommand extends Command
         }
 
         return $location.' (line '.$result->line.')';
+    }
+
+    private function renderStats($data): void
+    {
+        $total = $data->count();
+        $expired = $data->filter(fn (DeadlockResult $r) => $r->isExpired())->count();
+        $critical = $data->filter(fn (DeadlockResult $r) => $this->isCritical($r))->count();
+        $active = $data->filter(fn (DeadlockResult $r) => ! $r->isExpired())->count();
+
+        $line =
+            "Total: {$total} | Expired: <fg=red>{$expired}</> | ".
+            "Critical: <fg=yellow>{$critical}</> | Active: <fg=green>{$active}</>";
+
+        $this->line($this->centerLine($line));
+    }
+
+    private function centerLine(string $line): string
+    {
+        $plain = preg_replace('/<[^>]+>/', '', $line) ?? $line;
+        $length = function_exists('mb_strlen') ? mb_strlen($plain) : strlen($plain);
+
+        $terminal = new \Symfony\Component\Console\Terminal;
+        $width = $terminal->getWidth();
+
+        if ($width <= 0 || $length >= $width) {
+            return $line;
+        }
+
+        $padding = intdiv($width - $length, 2);
+
+        return str_repeat(' ', $padding).$line;
     }
 }
