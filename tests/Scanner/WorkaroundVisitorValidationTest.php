@@ -288,6 +288,29 @@ PHP
         });
     }
 
+    public function test_scanner_skips_empty_php_files(): void
+    {
+        $this->withTempDirectory(function (string $dir): void {
+            File::put($dir.'/Empty.php', '');
+
+            $scanner = $this->app->make(DeadlockScanner::class);
+            $results = $scanner->scan($dir);
+
+            $this->assertCount(0, $results);
+        });
+    }
+
+    public function test_is_workaround_attribute_helper_recognizes_names(): void
+    {
+        $visitor = new \Zidbih\Deadlock\Scanner\NodeVisitors\WorkaroundVisitor;
+        $method = new \ReflectionMethod($visitor, 'isWorkaroundAttribute');
+        $method->setAccessible(true);
+
+        $this->assertTrue($method->invoke($visitor, 'Workaround'));
+        $this->assertTrue($method->invoke($visitor, 'Zidbih\\Deadlock\\Attributes\\Workaround'));
+        $this->assertFalse($method->invoke($visitor, 'OtherAttribute'));
+    }
+
     private function withTempDirectory(callable $callback): void
     {
         $dir = sys_get_temp_dir().'/deadlock-tests-'.uniqid('', true);

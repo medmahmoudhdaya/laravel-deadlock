@@ -33,4 +33,32 @@ final class DeadlockCheckCommandTest extends TestCase
 
         File::delete($path);
     }
+
+    public function test_deadlock_check_succeeds_when_no_expired_workarounds(): void
+    {
+        $path = app_path('ActiveTestService.php');
+
+        File::put($path, <<<'PHP'
+            <?php
+
+            namespace App;
+
+            use Zidbih\Deadlock\Attributes\Workaround;
+
+            #[Workaround(
+                description: 'Active test workaround',
+                expires: '2099-01-01'
+            )]
+            class ActiveTestService {}
+            PHP
+        );
+
+        try {
+            $this->artisan('deadlock:check')
+                ->assertExitCode(0)
+                ->expectsOutputToContain('No expired workarounds found.');
+        } finally {
+            File::delete($path);
+        }
+    }
 }

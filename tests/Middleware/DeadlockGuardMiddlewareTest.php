@@ -100,6 +100,18 @@ final class DeadlockGuardMiddlewareTest extends TestCase
 
         $this->assertTrue(true);
     }
+
+    public function test_allows_active_workarounds_on_class_and_method(): void
+    {
+        $request = Request::create('/active', 'GET');
+        $request->setRouteResolver(fn () => new Route(['GET'], '/active', [
+            'controller' => ActiveController::class.'@index',
+        ]));
+
+        (new DeadlockGuardMiddleware)->handle($request, fn () => 'ok');
+
+        $this->assertTrue(true);
+    }
 }
 
 #[Workaround('Expired middleware workaround', '2020-01-01')]
@@ -110,5 +122,12 @@ final class ExpiredController
 
 final class MissingMethodController
 {
+    public function index(): void {}
+}
+
+#[Workaround('Active controller workaround', '2099-01-01')]
+final class ActiveController
+{
+    #[Workaround('Active method workaround', '2099-01-01')]
     public function index(): void {}
 }

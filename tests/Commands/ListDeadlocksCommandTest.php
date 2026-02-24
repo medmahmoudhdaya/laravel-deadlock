@@ -7,6 +7,7 @@ namespace Zidbih\Deadlock\Tests\Commands;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\File;
+use Zidbih\Deadlock\Scanner\DeadlockScanner;
 use Zidbih\Deadlock\Tests\TestCase;
 
 final class ListDeadlocksCommandTest extends TestCase
@@ -170,6 +171,13 @@ final class ListDeadlocksCommandTest extends TestCase
         }
     }
 
+    public function test_list_command_reports_no_matches_for_critical_filter(): void
+    {
+        $this->artisan('deadlock:list --critical')
+            ->assertExitCode(0)
+            ->expectsOutputToContain('No matching workarounds found.');
+    }
+
     public function test_list_command_sorts_by_date_by_default(): void
     {
         // Run and capture output, then assert relative order.
@@ -203,5 +211,121 @@ final class ListDeadlocksCommandTest extends TestCase
         $this->artisan('deadlock:list')
             ->assertExitCode(0)
             ->expectsOutputToContain('ExpiredListTestService (line ');
+    }
+
+    public function test_list_command_reports_no_workarounds_when_none_found(): void
+    {
+        File::delete($this->expiredPath);
+        File::delete($this->activePath);
+
+        $this->artisan('deadlock:list')
+            ->assertExitCode(0)
+            ->expectsOutputToContain('No workarounds found.')
+            ->expectsOutputToContain('Note: #[Workaround] is supported on classes and methods only.');
+    }
+
+    public function test_list_command_truncates_long_descriptions_with_ellipsis(): void
+    {
+        $longPath = app_path('LongDescriptionTestService.php');
+        $description = str_repeat('A', 90);
+        $expected = str_repeat('A', 79).'…';
+
+        File::put($longPath, <<<PHP
+<?php
+
+namespace App;
+
+use Zidbih\Deadlock\Attributes\Workaround;
+
+#[Workaround(
+    description: '{$description}',
+    expires: '2099-01-01'
+)]
+class LongDescriptionTestService {}
+PHP
+        );
+
+        try {
+            $this->artisan('deadlock:list')
+                ->assertExitCode(0)
+                ->expectsOutputToContain($expected);
+        } finally {
+            File::delete($longPath);
+        }
+    }
+
+    public function test_list_command_uses_singular_day_label_for_one_day_remaining(): void
+    {
+        $oneDayPath = app_path('OneDayTestService.php');
+
+        File::put($oneDayPath, <<<'PHP'
+<?php
+
+namespace App;
+
+use Zidbih\Deadlock\Attributes\Workaround;
+
+#[Workaround(
+    description: 'One day workaround',
+    expires: '2025-01-02'
+)]
+        class OneDayTestService {}
+PHP
+        );
+
+        try {
+            Artisan::call('deadlock:list');
+            $output = Artisan::output();
+
+            $this->assertNotSame('', $output);
+            $this->assertTrue(
+                str_contains($output, 'CRITICAL')
+            );
+            $this->assertTrue(
+                str_contains($output, 'day left') || str_contains($output, 'days left')
+            );
+        } finally {
+            File::delete($oneDayPath);
+        }
+    }
+
+    public function test_list_command_keeps_file_line_location_as_is(): void
+    {
+        $anonymousPath = app_path('AnonymousWorkaround.php');
+
+        File::put($anonymousPath, <<<'PHP'
+<?php
+
+namespace App;
+
+use Zidbih\Deadlock\Attributes\Workaround;
+
+return new class {
+    #[Workaround('Anonymous method workaround', '2099-01-01')]
+    public function run(): void {}
+};
+PHP
+        );
+
+        try {
+            $scanner = $this->app->make(DeadlockScanner::class);
+            $results = $scanner->scan(app_path());
+
+            $location = null;
+            foreach ($results as $result) {
+                if ($result->description === 'Anonymous method workaround') {
+                    $location = $result->location();
+                    break;
+                }
+            }
+
+            $this->assertIsString($location);
+
+            $this->artisan('deadlock:list')
+                ->assertExitCode(0)
+                ->expectsOutputToContain($location);
+        } finally {
+            File::delete($anonymousPath);
+        }
     }
 }
