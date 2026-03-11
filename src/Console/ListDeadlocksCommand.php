@@ -7,6 +7,7 @@ namespace Zidbih\Deadlock\Console;
 use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 use Symfony\Component\Console\Helper\ProgressIndicator;
+use Symfony\Component\Console\Terminal;
 use Zidbih\Deadlock\Scanner\DeadlockResult;
 use Zidbih\Deadlock\Scanner\DeadlockScanner;
 
@@ -164,7 +165,7 @@ final class ListDeadlocksCommand extends Command
         $plain = preg_replace('/<[^>]+>/', '', $line) ?? $line;
         $length = function_exists('mb_strlen') ? mb_strlen($plain) : strlen($plain);
 
-        $terminal = new \Symfony\Component\Console\Terminal;
+        $terminal = new Terminal;
         $width = $terminal->getWidth();
 
         if ($width <= 0 || $length >= $width) {

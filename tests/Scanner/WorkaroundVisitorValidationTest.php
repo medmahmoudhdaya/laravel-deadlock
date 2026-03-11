@@ -31,6 +31,7 @@ use Illuminate\Support\Facades\File;
 use InvalidArgumentException;
 use Zidbih\Deadlock\Scanner\DeadlockScanner;
 use Zidbih\Deadlock\Scanner\FileReadHook;
+use Zidbih\Deadlock\Scanner\NodeVisitors\WorkaroundVisitor;
 use Zidbih\Deadlock\Tests\TestCase;
 
 final class WorkaroundVisitorValidationTest extends TestCase
@@ -302,7 +303,7 @@ PHP
 
     public function test_is_workaround_attribute_helper_recognizes_names(): void
     {
-        $visitor = new \Zidbih\Deadlock\Scanner\NodeVisitors\WorkaroundVisitor;
+        $visitor = new WorkaroundVisitor;
         $method = new \ReflectionMethod($visitor, 'isWorkaroundAttribute');
         $method->setAccessible(true);
 
