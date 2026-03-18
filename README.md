@@ -34,7 +34,12 @@ composer require zidbih/laravel-deadlock
 ### Requirements
 
 - PHP: **8.2+**
-- Laravel: **10, 11, 12**
+- Laravel: **10, 11, 12, 13**
+
+### Compatibility
+
+- Laravel **10, 11, 12**: PHP **8.2+**
+- Laravel **13**: PHP **8.3+**
 
 ---
 
