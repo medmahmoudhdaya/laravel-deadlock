@@ -187,6 +187,32 @@ php artisan deadlock:check
 
 If an expired workaround is found, the command exits with **code 1**.
 
+For machine-readable output, use JSON mode:
+
+```bash
+php artisan deadlock:check --json
+```
+
+Example JSON output:
+
+```json
+{
+  "success": false,
+  "expired_count": 1,
+  "expired": [
+    {
+      "description": "Temporary payment gateway workaround",
+      "expires": "2025-02-10",
+      "location": "PaymentService::process",
+      "file": "/app/Services/PaymentService.php",
+      "line": 18,
+      "class": "PaymentService",
+      "method": "process"
+    }
+  ]
+}
+```
+
 Example failure output:
 
 ```
