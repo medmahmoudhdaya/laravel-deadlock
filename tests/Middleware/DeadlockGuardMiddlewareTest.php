@@ -25,6 +25,30 @@ final class DeadlockGuardMiddlewareTest extends TestCase
         (new DeadlockGuardMiddleware)->handle($request, fn () => 'ok');
     }
 
+    public function test_throws_for_array_controller_action_in_local(): void
+    {
+        $request = Request::create('/array-action', 'GET');
+        $request->setRouteResolver(fn () => new Route(['GET'], '/array-action', [
+            'controller' => [ArrayActionExpiredController::class, 'index'],
+        ]));
+
+        $this->expectException(WorkaroundExpiredException::class);
+
+        (new DeadlockGuardMiddleware)->handle($request, fn () => 'ok');
+    }
+
+    public function test_throws_for_invokable_controller_action_in_local(): void
+    {
+        $request = Request::create('/invokable', 'GET');
+        $request->setRouteResolver(fn () => new Route(['GET'], '/invokable', [
+            'controller' => InvokableExpiredController::class,
+        ]));
+
+        $this->expectException(WorkaroundExpiredException::class);
+
+        (new DeadlockGuardMiddleware)->handle($request, fn () => 'ok');
+    }
+
     public function test_skips_in_non_local_environment(): void
     {
         $this->app['env'] = 'production';
@@ -123,6 +147,18 @@ final class ExpiredController
 final class MissingMethodController
 {
     public function index(): void {}
+}
+
+#[Workaround('Expired array action workaround', '2020-01-01')]
+final class ArrayActionExpiredController
+{
+    public function index(): void {}
+}
+
+#[Workaround('Expired invokable workaround', '2020-01-01')]
+final class InvokableExpiredController
+{
+    public function __invoke(): void {}
 }
 
 #[Workaround('Active controller workaround', '2099-01-01')]

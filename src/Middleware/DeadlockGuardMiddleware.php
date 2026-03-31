@@ -6,6 +6,7 @@ namespace Zidbih\Deadlock\Middleware;
 
 use Closure;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Route;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Facades\App;
 use ReflectionClass;
@@ -27,17 +28,50 @@ final class DeadlockGuardMiddleware
             return $next($request);
         }
 
-        $action = $route->getAction('controller');
+        $resolved = $this->resolveControllerAction($route);
 
-        if (! is_string($action) || ! str_contains($action, '@')) {
+        if ($resolved === null) {
             return $next($request);
         }
 
-        [$controller, $method] = explode('@', $action);
+        [$controller, $method] = $resolved;
 
         $this->checkController($controller, $method);
 
         return $next($request);
+    }
+
+    /**
+     * @return array{0: string, 1: string}|null
+     */
+    private function resolveControllerAction(Route $route): ?array
+    {
+        $action = $route->getAction('controller') ?? $route->getAction('uses');
+
+        if (is_array($action) && count($action) === 2) {
+            $controller = is_object($action[0]) ? $action[0]::class : $action[0];
+            $method = $action[1];
+
+            return is_string($controller) && is_string($method)
+                ? [$controller, $method]
+                : null;
+        }
+
+        if (! is_string($action)) {
+            return null;
+        }
+
+        if (str_contains($action, '@')) {
+            [$controller, $method] = explode('@', $action, 2);
+
+            return [$controller, $method];
+        }
+
+        if (class_exists($action) && method_exists($action, '__invoke')) {
+            return [$action, '__invoke'];
+        }
+
+        return null;
     }
 
     private function checkController(string $controller, string $method): void
