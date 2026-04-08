@@ -42,6 +42,12 @@ final class ExtendDeadlocksCommand extends Command
             return self::INVALID;
         }
 
+        if (pathinfo($path, PATHINFO_EXTENSION) !== 'php') {
+            $this->error('The --file option must point to a PHP file.');
+
+            return self::INVALID;
+        }
+
         $code = @file_get_contents($path);
 
         if ($code === false) {
@@ -89,6 +95,27 @@ final class ExtendDeadlocksCommand extends Command
             return self::INVALID;
         }
 
+        if (! $this->option('all')) {
+            if (! $extender->foundTargetClass) {
+                $this->error(sprintf(
+                    'The class "%s" was not found in the target file.',
+                    $this->option('class')
+                ));
+
+                return self::FAILURE;
+            }
+
+            if (! $extender->foundTargetMethod) {
+                $this->error(sprintf(
+                    'The method "%s" was not found on class "%s" in the target file.',
+                    $this->option('method'),
+                    $this->option('class')
+                ));
+
+                return self::FAILURE;
+            }
+        }
+
         if ($extender->updatedCount === 0) {
             $this->error($this->option('all')
                 ? 'No workarounds were found in the target file.'
@@ -105,7 +132,11 @@ final class ExtendDeadlocksCommand extends Command
         );
 
         if ($updatedCode !== $code) {
-            file_put_contents($path, $updatedCode);
+            if (@file_put_contents($path, $updatedCode) === false) {
+                $this->error('The updated file could not be written.');
+
+                return self::FAILURE;
+            }
         }
 
         $this->info("Extended {$extender->updatedCount} workaround(s).");

@@ -31,7 +31,7 @@ use Illuminate\Support\Facades\File;
 use InvalidArgumentException;
 use Zidbih\Deadlock\Scanner\DeadlockScanner;
 use Zidbih\Deadlock\Scanner\FileReadHook;
-use Zidbih\Deadlock\Scanner\NodeVisitors\WorkaroundVisitor;
+use Zidbih\Deadlock\Scanner\NodeVisitors\WorkaroundAttributeMatcher;
 use Zidbih\Deadlock\Tests\TestCase;
 
 final class WorkaroundVisitorValidationTest extends TestCase
@@ -303,13 +303,10 @@ PHP
 
     public function test_is_workaround_attribute_helper_recognizes_names(): void
     {
-        $visitor = new WorkaroundVisitor;
-        $method = new \ReflectionMethod($visitor, 'isWorkaroundAttribute');
-        $method->setAccessible(true);
-
-        $this->assertTrue($method->invoke($visitor, 'Workaround'));
-        $this->assertTrue($method->invoke($visitor, 'Zidbih\\Deadlock\\Attributes\\Workaround'));
-        $this->assertFalse($method->invoke($visitor, 'OtherAttribute'));
+        $this->assertTrue(WorkaroundAttributeMatcher::matches('Workaround'));
+        $this->assertTrue(WorkaroundAttributeMatcher::matches('Zidbih\\Deadlock\\Attributes\\Workaround'));
+        $this->assertTrue(WorkaroundAttributeMatcher::matches('\\Zidbih\\Deadlock\\Attributes\\Workaround'));
+        $this->assertFalse(WorkaroundAttributeMatcher::matches('OtherAttribute'));
     }
 
     private function withTempDirectory(callable $callback): void

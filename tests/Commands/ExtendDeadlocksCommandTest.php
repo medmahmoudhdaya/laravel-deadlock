@@ -109,6 +109,35 @@ PHP
         }
     }
 
+    public function test_extend_command_rejects_invalid_months(): void
+    {
+        $path = app_path('ExtendInvalidMonthsTest.php');
+
+        File::put($path, <<<'PHP'
+<?php
+
+namespace App;
+
+use Zidbih\Deadlock\Attributes\Workaround;
+
+#[Workaround('Example', '2025-01-01')]
+class ExtendInvalidMonthsTest {}
+PHP
+        );
+
+        try {
+            $this->artisan('deadlock:extend', [
+                '--file' => $path,
+                '--all' => true,
+                '--months' => 0,
+            ])
+                ->assertExitCode(2)
+                ->expectsOutputToContain('The --months option must be a positive integer.');
+        } finally {
+            File::delete($path);
+        }
+    }
+
     public function test_extend_command_updates_all_workarounds_in_a_file(): void
     {
         $path = app_path('ExtendAllWorkaroundsTest.php');
@@ -151,6 +180,43 @@ PHP
         }
     }
 
+    public function test_extend_command_updates_named_expires_arguments(): void
+    {
+        $path = app_path('ExtendNamedExpiresTest.php');
+
+        File::put($path, <<<'PHP'
+<?php
+
+namespace App;
+
+use Zidbih\Deadlock\Attributes\Workaround;
+
+class ExtendNamedExpiresTest
+{
+    #[Workaround(description: 'Named workaround', expires: '2025-01-15')]
+    public function handle(): void {}
+}
+PHP
+        );
+
+        try {
+            $this->artisan('deadlock:extend', [
+                '--file' => $path,
+                '--class' => 'App\\ExtendNamedExpiresTest',
+                '--method' => 'handle',
+                '--days' => 10,
+            ])
+                ->assertExitCode(0)
+                ->expectsOutputToContain('Extended 1 workaround(s).');
+
+            $contents = File::get($path);
+
+            $this->assertStringContainsString("expires: '2025-01-25'", $contents);
+        } finally {
+            File::delete($path);
+        }
+    }
+
     public function test_extend_command_updates_only_the_targeted_method_workaround(): void
     {
         $path = app_path('ExtendMethodWorkaroundTest.php');
@@ -187,6 +253,116 @@ PHP
 
             $this->assertStringContainsString("'Target method workaround', '2026-06-01'", $contents);
             $this->assertStringContainsString("'Other method workaround', '2025-02-20'", $contents);
+        } finally {
+            File::delete($path);
+        }
+    }
+
+    public function test_extend_command_only_updates_the_targeted_class_in_a_multi_class_file(): void
+    {
+        $path = app_path('ExtendMultiClassWorkaroundTest.php');
+
+        File::put($path, <<<'PHP'
+<?php
+
+namespace App;
+
+use Zidbih\Deadlock\Attributes\Workaround;
+
+class FirstExtendMultiClassWorkaroundTest
+{
+    #[Workaround('First workaround', '2025-01-15')]
+    public function handle(): void {}
+}
+
+class SecondExtendMultiClassWorkaroundTest
+{
+    #[Workaround('Second workaround', '2025-02-20')]
+    public function handle(): void {}
+}
+PHP
+        );
+
+        try {
+            $this->artisan('deadlock:extend', [
+                '--file' => $path,
+                '--class' => 'App\\SecondExtendMultiClassWorkaroundTest',
+                '--method' => 'handle',
+                '--days' => 5,
+            ])
+                ->assertExitCode(0)
+                ->expectsOutputToContain('Extended 1 workaround(s).');
+
+            $contents = File::get($path);
+
+            $this->assertStringContainsString("'First workaround', '2025-01-15'", $contents);
+            $this->assertStringContainsString("'Second workaround', '2025-02-25'", $contents);
+        } finally {
+            File::delete($path);
+        }
+    }
+
+    public function test_extend_command_fails_when_target_class_is_missing(): void
+    {
+        $path = app_path('ExtendMissingClassTest.php');
+
+        File::put($path, <<<'PHP'
+<?php
+
+namespace App;
+
+use Zidbih\Deadlock\Attributes\Workaround;
+
+class ExtendMissingClassTest
+{
+    #[Workaround('Example', '2025-01-15')]
+    public function handle(): void {}
+}
+PHP
+        );
+
+        try {
+            $this->artisan('deadlock:extend', [
+                '--file' => $path,
+                '--class' => 'App\\DoesNotExist',
+                '--method' => 'handle',
+                '--days' => 1,
+            ])
+                ->assertExitCode(1)
+                ->expectsOutputToContain('The class "App\DoesNotExist" was not found in the target file.');
+        } finally {
+            File::delete($path);
+        }
+    }
+
+    public function test_extend_command_fails_when_target_method_is_missing(): void
+    {
+        $path = app_path('ExtendMissingMethodTest.php');
+
+        File::put($path, <<<'PHP'
+<?php
+
+namespace App;
+
+use Zidbih\Deadlock\Attributes\Workaround;
+
+class ExtendMissingMethodTest
+{
+    #[Workaround('Example', '2025-01-15')]
+    public function handle(): void {}
+}
+PHP
+        );
+
+        try {
+            $this->artisan('deadlock:extend', [
+                '--file' => $path,
+                '--class' => 'App\\ExtendMissingMethodTest',
+                '--method' => 'missing',
+                '--days' => 1,
+            ])
+                ->assertExitCode(1)
+                ->expectsOutputToContain('The method "missing" was not found on class "App\ExtendMissingMethodTest" in the target file.');
         } finally {
             File::delete($path);
         }

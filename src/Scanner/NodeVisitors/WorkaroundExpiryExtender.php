@@ -16,6 +16,10 @@ final class WorkaroundExpiryExtender extends NodeVisitorAbstract
 {
     public int $updatedCount = 0;
 
+    public bool $foundTargetClass = false;
+
+    public bool $foundTargetMethod = false;
+
     private ?string $namespace = null;
 
     private ?string $currentClass = null;
@@ -41,10 +45,21 @@ final class WorkaroundExpiryExtender extends NodeVisitorAbstract
             $this->currentClass = $node->name === null
                 ? null
                 : ltrim(($this->namespace ? $this->namespace.'\\' : '').$node->name->toString(), '\\');
+
+            if (! $this->extendAll && $this->currentClass === $this->targetClass) {
+                $this->foundTargetClass = true;
+            }
         }
 
         if (! ($node instanceof Node\Stmt\Class_ || $node instanceof Node\Stmt\ClassMethod)) {
             return;
+        }
+
+        if (! $this->extendAll
+            && $node instanceof Node\Stmt\ClassMethod
+            && $this->currentClass === $this->targetClass
+            && $node->name->toString() === $this->targetMethod) {
+            $this->foundTargetMethod = true;
         }
 
         if (! $this->shouldUpdate($node)) {
@@ -53,7 +68,7 @@ final class WorkaroundExpiryExtender extends NodeVisitorAbstract
 
         foreach ($node->attrGroups as $group) {
             foreach ($group->attrs as $attribute) {
-                if (! $this->isWorkaroundAttribute($attribute->name->toString())) {
+                if (! WorkaroundAttributeMatcher::matches($attribute->name->toString())) {
                     continue;
                 }
 
@@ -142,11 +157,5 @@ final class WorkaroundExpiryExtender extends NodeVisitorAbstract
         }
 
         return $date;
-    }
-
-    private function isWorkaroundAttribute(string $name): bool
-    {
-        return $name === 'Workaround'
-            || $name === 'Zidbih\\Deadlock\\Attributes\\Workaround';
     }
 }

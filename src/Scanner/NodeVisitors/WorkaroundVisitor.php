@@ -33,7 +33,7 @@ final class WorkaroundVisitor extends NodeVisitorAbstract
 
         foreach ($node->attrGroups as $group) {
             foreach ($group->attrs as $attribute) {
-                if (! $this->isWorkaroundAttribute($attribute->name->toString())) {
+                if (! WorkaroundAttributeMatcher::matches($attribute->name->toString())) {
                     continue;
                 }
 
@@ -80,11 +80,5 @@ final class WorkaroundVisitor extends NodeVisitorAbstract
                 );
             }
         }
-    }
-
-    private function isWorkaroundAttribute(string $name): bool
-    {
-        return $name === 'Workaround'
-            || $name === 'Zidbih\\Deadlock\\Attributes\\Workaround';
     }
 }
