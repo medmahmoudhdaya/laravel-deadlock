@@ -177,83 +177,106 @@ The list command now includes a summary line by default, showing totals at a gla
 
 ### Extend Workarounds
 
-You can extend workaround expiration dates by class name, and controllers also support a shorter `--controller` form.
+`deadlock:extend` updates the `expires` date of an existing `#[Workaround]` attribute in your source code.
 
-#### Controller shortcut
+It supports three target modes:
 
-For controllers under `App\Http\Controllers`, use `--controller` instead of the full class name:
+- Extend the workaround on a class
+- Extend the workaround on one method
+- Extend every workaround declared on a class
+
+#### Targeting
+
+Use exactly one of these target options:
+
+- `--class=App\Services\PricingService`
+- `--controller=TestController`
+
+`--controller` is a shortcut for classes under `App\Http\Controllers`.
+
+Examples:
 
 ```bash
 php artisan deadlock:extend --controller=TestController --days=7
-```
-
-For nested controllers:
-
-```bash
 php artisan deadlock:extend --controller=Admin\TestController --method=index --months=1
-```
-
-#### Extend a class-level workaround
-
-This updates only the `#[Workaround]` attribute on the class itself.
-
-```bash
 php artisan deadlock:extend --class=App\Services\PricingService --days=7
 ```
 
-You can also combine `--days` and `--months`:
+#### How Targeting Works
+
+`--class` only:
+- Targets the class-level `#[Workaround]` on that class
+
+`--class` or `--controller` with `--method=...`:
+- Targets only the workaround on that method
+
+`--class` or `--controller` with `--all`:
+- Targets the class-level workaround
+- Targets every method-level workaround declared on that class
+
+#### Date Options
+
+You must provide either:
+
+- `--days=N`
+- `--months=N`
+- `--date=YYYY-MM-DD`
+
+You may combine `--days` and `--months` in the same command.
 
 ```bash
 php artisan deadlock:extend --class=App\Services\PricingService --months=1 --days=7
 ```
 
-Or set an exact date:
+`--date` is absolute and replaces the current expiry date directly.
 
 ```bash
 php artisan deadlock:extend --class=App\Services\PricingService --date=2026-06-01
 ```
 
-#### Extend a method-level workaround
+`--date` cannot be combined with `--days` or `--months`.
 
-This updates only the workaround on the specified method.
+#### Examples
+
+Extend a class-level workaround:
+
+```bash
+php artisan deadlock:extend --class=App\Services\PricingService --days=7
+```
+
+Extend a method-level workaround:
 
 ```bash
 php artisan deadlock:extend --class=App\Services\PricingService --method=calculate --days=7
 ```
 
-```bash
-php artisan deadlock:extend --class=App\Services\PricingService --method=calculate --months=1 --days=7
-```
-
-```bash
-php artisan deadlock:extend --class=App\Services\PricingService --method=calculate --date=2026-06-01
-```
-
-#### Extend every workaround on a class
-
-This updates the class-level workaround and every method-level workaround declared on that class.
-
-```bash
-php artisan deadlock:extend --class=App\Services\PricingService --all --days=7
-```
+Extend every workaround on a class:
 
 ```bash
 php artisan deadlock:extend --class=App\Services\PricingService --all --months=1 --days=7
 ```
 
+Extend a controller workaround:
+
 ```bash
-php artisan deadlock:extend --class=App\Services\PricingService --all --date=2026-06-01
+php artisan deadlock:extend --controller=TestController --days=7
 ```
 
-#### Rules
+Extend a nested controller method workaround:
+
+```bash
+php artisan deadlock:extend --controller=Admin\TestController --method=index --date=2026-06-01
+```
+
+#### Validation Rules
 
 - Use exactly one of `--class` or `--controller`
-- `--controller` resolves classes under `App\Http\Controllers`
-- `--method` targets one method-level workaround
-- `--all` extends the class-level workaround and all method-level workarounds on the class
-- Without `--method` or `--all`, the command targets the class-level workaround only
-- `--days` and `--months` can be combined
-- `--date` is exclusive and cannot be combined with `--days` or `--months`
+- `--method` and `--all` cannot be used together
+- Without `--method` or `--all`, the command updates only the class-level workaround
+- `--days` and `--months` must be positive integers
+- `--date` must use `YYYY-MM-DD`
+- The target class must resolve to a real PHP file
+- The targeted class or method must already have a `#[Workaround]`
 
 ---
 
