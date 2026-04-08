@@ -184,19 +184,19 @@ You can extend workaround expiration dates directly from the class name.
 This updates only the `#[Workaround]` attribute on the class itself.
 
 ```bash
-php artisan deadlock:extend --class="App\\Services\\PricingService" --days=7
+php artisan deadlock:extend --class=App\Services\PricingService --days=7
 ```
 
 You can also combine `--days` and `--months`:
 
 ```bash
-php artisan deadlock:extend --class="App\\Services\\PricingService" --months=1 --days=7
+php artisan deadlock:extend --class=App\Services\PricingService --months=1 --days=7
 ```
 
 Or set an exact date:
 
 ```bash
-php artisan deadlock:extend --class="App\\Services\\PricingService" --date=2026-06-01
+php artisan deadlock:extend --class=App\Services\PricingService --date=2026-06-01
 ```
 
 #### Extend a method-level workaround
@@ -204,15 +204,15 @@ php artisan deadlock:extend --class="App\\Services\\PricingService" --date=2026-
 This updates only the workaround on the specified method.
 
 ```bash
-php artisan deadlock:extend --class="App\\Services\\PricingService" --method=calculate --days=7
+php artisan deadlock:extend --class=App\Services\PricingService --method=calculate --days=7
 ```
 
 ```bash
-php artisan deadlock:extend --class="App\\Services\\PricingService" --method=calculate --months=1 --days=7
+php artisan deadlock:extend --class=App\Services\PricingService --method=calculate --months=1 --days=7
 ```
 
 ```bash
-php artisan deadlock:extend --class="App\\Services\\PricingService" --method=calculate --date=2026-06-01
+php artisan deadlock:extend --class=App\Services\PricingService --method=calculate --date=2026-06-01
 ```
 
 #### Extend every workaround on a class
@@ -220,15 +220,15 @@ php artisan deadlock:extend --class="App\\Services\\PricingService" --method=cal
 This updates the class-level workaround and every method-level workaround declared on that class.
 
 ```bash
-php artisan deadlock:extend --class="App\\Services\\PricingService" --all --days=7
+php artisan deadlock:extend --class=App\Services\PricingService --all --days=7
 ```
 
 ```bash
-php artisan deadlock:extend --class="App\\Services\\PricingService" --all --months=1 --days=7
+php artisan deadlock:extend --class=App\Services\PricingService --all --months=1 --days=7
 ```
 
 ```bash
-php artisan deadlock:extend --class="App\\Services\\PricingService" --all --date=2026-06-01
+php artisan deadlock:extend --class=App\Services\PricingService --all --date=2026-06-01
 ```
 
 #### Rules
