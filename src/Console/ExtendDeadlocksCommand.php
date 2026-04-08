@@ -9,15 +9,15 @@ use PhpParser\NodeTraverser;
 use PhpParser\NodeVisitor\CloningVisitor;
 use PhpParser\ParserFactory;
 use PhpParser\PrettyPrinter\Standard;
+use ReflectionClass;
 use Zidbih\Deadlock\Scanner\NodeVisitors\WorkaroundExpiryExtender;
 
 final class ExtendDeadlocksCommand extends Command
 {
     protected $signature = 'deadlock:extend
-    {--file= : File containing the workaround(s) to extend}
-    {--all : Extend all workarounds in the file}
     {--class= : Fully qualified class name}
     {--method= : Method name for a targeted workaround}
+    {--all : Extend the class-level workaround and every method workaround on the class}
     {--days= : Number of days to add}
     {--months= : Number of months to add}
     {--date= : Exact expiry date in YYYY-MM-DD format}';
@@ -34,18 +34,16 @@ final class ExtendDeadlocksCommand extends Command
             return self::INVALID;
         }
 
-        $path = $this->resolvePath();
+        $class = trim((string) $this->option('class'));
+        $path = $this->resolveClassFile($class);
 
-        if (! is_file($path)) {
-            $this->error('The --file option must point to an existing PHP file.');
+        if ($path === null) {
+            $this->error(sprintf(
+                'The class "%s" could not be resolved to a PHP file.',
+                $class
+            ));
 
-            return self::INVALID;
-        }
-
-        if (pathinfo($path, PATHINFO_EXTENSION) !== 'php') {
-            $this->error('The --file option must point to a PHP file.');
-
-            return self::INVALID;
+            return self::FAILURE;
         }
 
         $code = @file_get_contents($path);
@@ -77,7 +75,7 @@ final class ExtendDeadlocksCommand extends Command
         $modifiedStatements = $cloneTraverser->traverse($originalStatements);
 
         $extender = new WorkaroundExpiryExtender(
-            targetClass: $this->option('class'),
+            targetClass: $class,
             targetMethod: $this->option('method'),
             extendAll: (bool) $this->option('all'),
             days: $this->integerOption('days'),
@@ -95,31 +93,29 @@ final class ExtendDeadlocksCommand extends Command
             return self::INVALID;
         }
 
-        if (! $this->option('all')) {
-            if (! $extender->foundTargetClass) {
-                $this->error(sprintf(
-                    'The class "%s" was not found in the target file.',
-                    $this->option('class')
-                ));
+        if (! $extender->foundTargetClass) {
+            $this->error(sprintf(
+                'The class "%s" was not found in the resolved file.',
+                $class
+            ));
 
-                return self::FAILURE;
-            }
+            return self::FAILURE;
+        }
 
-            if (! $extender->foundTargetMethod) {
-                $this->error(sprintf(
-                    'The method "%s" was not found on class "%s" in the target file.',
-                    $this->option('method'),
-                    $this->option('class')
-                ));
+        if ($this->option('method') !== null && ! $extender->foundTargetMethod) {
+            $this->error(sprintf(
+                'The method "%s" was not found on class "%s".',
+                $this->option('method'),
+                $class
+            ));
 
-                return self::FAILURE;
-            }
+            return self::FAILURE;
         }
 
         if ($extender->updatedCount === 0) {
-            $this->error($this->option('all')
-                ? 'No workarounds were found in the target file.'
-                : 'No workaround was found for the specified class and method.');
+            $this->error($this->option('method') !== null
+                ? 'No workaround was found for the specified class and method.'
+                : 'No workaround was found for the specified class.');
 
             return self::FAILURE;
         }
@@ -146,20 +142,19 @@ final class ExtendDeadlocksCommand extends Command
 
     private function validateOptions(): ?string
     {
-        if (! is_string($this->option('file')) || trim($this->option('file')) === '') {
-            return 'The --file option is required.';
+        if (! is_string($this->option('class')) || trim($this->option('class')) === '') {
+            return 'The --class option is required.';
         }
 
         $all = (bool) $this->option('all');
-        $class = $this->option('class');
         $method = $this->option('method');
 
-        if ($all === ($class !== null || $method !== null)) {
-            return 'Use either --all or --class with --method.';
+        if ($all && $method !== null) {
+            return 'The --all option cannot be combined with --method.';
         }
 
-        if (! $all && (! is_string($class) || trim($class) === '' || ! is_string($method) || trim($method) === '')) {
-            return 'The --class and --method options are required unless --all is used.';
+        if ($method !== null && (! is_string($method) || trim($method) === '')) {
+            return 'The --method option must not be empty.';
         }
 
         $hasDays = $this->option('days') !== null;
@@ -185,15 +180,29 @@ final class ExtendDeadlocksCommand extends Command
         return null;
     }
 
-    private function resolvePath(): string
+    private function resolveClassFile(string $class): ?string
     {
-        $path = trim((string) $this->option('file'));
+        if (str_starts_with($class, 'App\\')) {
+            $relativePath = str_replace('\\', DIRECTORY_SEPARATOR, substr($class, 4)).'.php';
+            $appPath = app_path($relativePath);
 
-        if (str_starts_with($path, DIRECTORY_SEPARATOR) || preg_match('/^[A-Za-z]:[\\\\\\/]/', $path) === 1) {
-            return $path;
+            if (is_file($appPath)) {
+                return $appPath;
+            }
         }
 
-        return base_path($path);
+        if (! class_exists($class)) {
+            return null;
+        }
+
+        $reflection = new ReflectionClass($class);
+        $path = $reflection->getFileName();
+
+        if (! is_string($path) || $path === '' || pathinfo($path, PATHINFO_EXTENSION) !== 'php') {
+            return null;
+        }
+
+        return $path;
     }
 
     private function integerOption(string $name): int

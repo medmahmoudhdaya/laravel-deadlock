@@ -25,7 +25,7 @@ final class WorkaroundExpiryExtender extends NodeVisitorAbstract
     private ?string $currentClass = null;
 
     public function __construct(
-        private readonly ?string $targetClass,
+        private readonly string $targetClass,
         private readonly ?string $targetMethod,
         private readonly bool $extendAll,
         private readonly int $days,
@@ -46,7 +46,7 @@ final class WorkaroundExpiryExtender extends NodeVisitorAbstract
                 ? null
                 : ltrim(($this->namespace ? $this->namespace.'\\' : '').$node->name->toString(), '\\');
 
-            if (! $this->extendAll && $this->currentClass === $this->targetClass) {
+            if ($this->currentClass === $this->targetClass) {
                 $this->foundTargetClass = true;
             }
         }
@@ -89,15 +89,20 @@ final class WorkaroundExpiryExtender extends NodeVisitorAbstract
 
     private function shouldUpdate(Node $node): bool
     {
+        if ($this->currentClass !== $this->targetClass) {
+            return false;
+        }
+
         if ($this->extendAll) {
             return true;
         }
 
-        if ($this->currentClass !== $this->targetClass || ! $node instanceof Node\Stmt\ClassMethod) {
-            return false;
+        if ($this->targetMethod === null) {
+            return $node instanceof Node\Stmt\Class_;
         }
 
-        return $node->name->toString() === $this->targetMethod;
+        return $node instanceof Node\Stmt\ClassMethod
+            && $node->name->toString() === $this->targetMethod;
     }
 
     /**
