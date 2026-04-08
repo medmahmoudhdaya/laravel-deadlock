@@ -4,9 +4,14 @@ declare(strict_types=1);
 
 namespace Zidbih\Deadlock\Tests\Commands;
 
+use Illuminate\Console\Command;
+use Illuminate\Console\OutputStyle;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\File;
+use Symfony\Component\Console\Input\ArrayInput;
+use Symfony\Component\Console\Output\BufferedOutput;
+use Zidbih\Deadlock\Console\ListDeadlocksCommand;
 use Zidbih\Deadlock\Scanner\DeadlockScanner;
 use Zidbih\Deadlock\Tests\TestCase;
 
@@ -327,5 +332,35 @@ PHP
         } finally {
             File::delete($anonymousPath);
         }
+    }
+
+    public function test_center_line_returns_original_when_text_is_wider_than_terminal(): void
+    {
+        $command = new ListDeadlocksCommand;
+        $method = new \ReflectionMethod($command, 'centerLine');
+        $method->setAccessible(true);
+
+        $line = str_repeat('A', 500);
+
+        $this->assertSame($line, $method->invoke($command, $line));
+    }
+
+    public function test_list_command_uses_progress_indicator_when_output_is_decorated(): void
+    {
+        $output = new OutputStyle(
+            new ArrayInput([]),
+            new BufferedOutput(decorated: true)
+        );
+
+        $command = new ListDeadlocksCommand;
+        $command->setLaravel($this->app);
+        $command->setOutput($output);
+        $input = new ArrayInput([], $command->getDefinition());
+
+        $property = new \ReflectionProperty(Command::class, 'input');
+        $property->setAccessible(true);
+        $property->setValue($command, $input);
+
+        $this->assertSame(0, $command->handle($this->app->make(DeadlockScanner::class)));
     }
 }
