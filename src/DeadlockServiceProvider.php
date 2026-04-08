@@ -7,6 +7,7 @@ namespace Zidbih\Deadlock;
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Support\ServiceProvider;
 use Zidbih\Deadlock\Console\CheckDeadlocksCommand;
+use Zidbih\Deadlock\Console\ExtendDeadlocksCommand;
 use Zidbih\Deadlock\Console\ListDeadlocksCommand;
 use Zidbih\Deadlock\Middleware\DeadlockGuardMiddleware;
 use Zidbih\Deadlock\Scanner\DeadlockScanner;
@@ -35,6 +36,7 @@ final class DeadlockServiceProvider extends ServiceProvider
             $this->commands([
                 ListDeadlocksCommand::class,
                 CheckDeadlocksCommand::class,
+                ExtendDeadlocksCommand::class,
             ]);
         }
     }
