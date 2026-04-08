@@ -29,10 +29,12 @@ final class DeadlockCheckCommandTest extends TestCase
             PHP
         );
 
-        $this->artisan('deadlock:check')
-            ->assertExitCode(1);
-
-        File::delete($path);
+        try {
+            $this->artisan('deadlock:check')
+                ->assertExitCode(1);
+        } finally {
+            File::delete($path);
+        }
     }
 
     public function test_deadlock_check_succeeds_when_no_expired_workarounds(): void

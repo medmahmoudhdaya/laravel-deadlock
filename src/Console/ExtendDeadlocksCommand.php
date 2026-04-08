@@ -16,6 +16,7 @@ final class ExtendDeadlocksCommand extends Command
 {
     protected $signature = 'deadlock:extend
     {--class= : Fully qualified class name}
+    {--controller= : Controller class relative to App\Http\Controllers}
     {--method= : Method name for a targeted workaround}
     {--all : Extend the class-level workaround and every method workaround on the class}
     {--days= : Number of days to add}
@@ -34,7 +35,7 @@ final class ExtendDeadlocksCommand extends Command
             return self::INVALID;
         }
 
-        $class = trim((string) $this->option('class'));
+        $class = $this->resolveTargetClass();
         $path = $this->resolveClassFile($class);
 
         if ($path === null) {
@@ -142,8 +143,14 @@ final class ExtendDeadlocksCommand extends Command
 
     private function validateOptions(): ?string
     {
-        if (! is_string($this->option('class')) || trim($this->option('class')) === '') {
-            return 'The --class option is required.';
+        $class = $this->option('class');
+        $controller = $this->option('controller');
+
+        $hasClass = is_string($class) && trim($class) !== '';
+        $hasController = is_string($controller) && trim($controller) !== '';
+
+        if ($hasClass === $hasController) {
+            return 'Use exactly one of --class or --controller.';
         }
 
         $all = (bool) $this->option('all');
@@ -180,15 +187,31 @@ final class ExtendDeadlocksCommand extends Command
         return null;
     }
 
+    private function resolveTargetClass(): string
+    {
+        $class = $this->option('class');
+
+        if (is_string($class) && trim($class) !== '') {
+            return trim($class);
+        }
+
+        $controller = trim((string) $this->option('controller'));
+        $controller = str_replace('/', '\\', $controller);
+
+        if (! str_starts_with($controller, 'App\\Http\\Controllers\\')) {
+            $controller = 'App\\Http\\Controllers\\'.$controller;
+        }
+
+        return ltrim($controller, '\\');
+    }
+
     private function resolveClassFile(string $class): ?string
     {
         if (str_starts_with($class, 'App\\')) {
             $relativePath = str_replace('\\', DIRECTORY_SEPARATOR, substr($class, 4)).'.php';
             $appPath = app_path($relativePath);
 
-            if (is_file($appPath)) {
-                return $appPath;
-            }
+            return is_file($appPath) ? $appPath : null;
         }
 
         if (! class_exists($class)) {

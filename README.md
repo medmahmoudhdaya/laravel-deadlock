@@ -177,7 +177,21 @@ The list command now includes a summary line by default, showing totals at a gla
 
 ### Extend Workarounds
 
-You can extend workaround expiration dates directly from the class name.
+You can extend workaround expiration dates by class name, and controllers also support a shorter `--controller` form.
+
+#### Controller shortcut
+
+For controllers under `App\Http\Controllers`, use `--controller` instead of the full class name:
+
+```bash
+php artisan deadlock:extend --controller=TestController --days=7
+```
+
+For nested controllers:
+
+```bash
+php artisan deadlock:extend --controller=Admin\TestController --method=index --months=1
+```
 
 #### Extend a class-level workaround
 
@@ -233,7 +247,8 @@ php artisan deadlock:extend --class=App\Services\PricingService --all --date=202
 
 #### Rules
 
-- `--class` is always required
+- Use exactly one of `--class` or `--controller`
+- `--controller` resolves classes under `App\Http\Controllers`
 - `--method` targets one method-level workaround
 - `--all` extends the class-level workaround and all method-level workarounds on the class
 - Without `--method` or `--all`, the command targets the class-level workaround only

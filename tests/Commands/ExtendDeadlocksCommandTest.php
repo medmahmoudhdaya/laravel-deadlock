@@ -54,7 +54,93 @@ final class ExtendDeadlocksCommandTest extends TestCase
     {
         $this->artisan('deadlock:extend --days=1')
             ->assertExitCode(2)
-            ->expectsOutputToContain('The --class option is required.');
+            ->expectsOutputToContain('Use exactly one of --class or --controller.');
+    }
+
+    public function test_extend_command_rejects_combining_class_with_controller(): void
+    {
+        $this->artisan('deadlock:extend', [
+            '--class' => ExtendContractController::class,
+            '--controller' => 'TestController',
+            '--days' => 1,
+        ])
+            ->assertExitCode(2)
+            ->expectsOutputToContain('Use exactly one of --class or --controller.');
+    }
+
+    public function test_extend_command_updates_controller_workaround(): void
+    {
+        $path = app_path('Http/Controllers/ExtendControllerTargetTest.php');
+        File::ensureDirectoryExists(dirname($path));
+
+        File::put($path, <<<'PHP'
+<?php
+
+namespace App\Http\Controllers;
+
+use Zidbih\Deadlock\Attributes\Workaround;
+
+#[Workaround('Controller workaround', '2025-01-01')]
+class ExtendControllerTargetTest
+{
+    #[Workaround('Method workaround', '2025-02-01')]
+    public function index(): void {}
+}
+PHP
+        );
+
+        try {
+            $this->artisan('deadlock:extend', [
+                '--controller' => 'ExtendControllerTargetTest',
+                '--days' => 2,
+            ])
+                ->assertExitCode(0)
+                ->expectsOutputToContain('Extended 1 workaround(s).');
+
+            $contents = File::get($path);
+
+            $this->assertStringContainsString("'Controller workaround', '2025-01-03'", $contents);
+            $this->assertStringContainsString("'Method workaround', '2025-02-01'", $contents);
+        } finally {
+            File::delete($path);
+        }
+    }
+
+    public function test_extend_command_updates_nested_controller_method_workaround(): void
+    {
+        $path = app_path('Http/Controllers/Admin/ExtendNestedControllerTargetTest.php');
+        File::ensureDirectoryExists(dirname($path));
+
+        File::put($path, <<<'PHP'
+<?php
+
+namespace App\Http\Controllers\Admin;
+
+use Zidbih\Deadlock\Attributes\Workaround;
+
+class ExtendNestedControllerTargetTest
+{
+    #[Workaround('Nested controller method workaround', '2025-02-01')]
+    public function index(): void {}
+}
+PHP
+        );
+
+        try {
+            $this->artisan('deadlock:extend', [
+                '--controller' => 'Admin/ExtendNestedControllerTargetTest',
+                '--method' => 'index',
+                '--months' => 1,
+            ])
+                ->assertExitCode(0)
+                ->expectsOutputToContain('Extended 1 workaround(s).');
+
+            $contents = File::get($path);
+
+            $this->assertStringContainsString("'Nested controller method workaround', '2025-03-01'", $contents);
+        } finally {
+            File::delete($path);
+        }
     }
 
     public function test_extend_command_rejects_combining_all_with_method(): void
@@ -392,6 +478,16 @@ PHP
         ])
             ->assertExitCode(1)
             ->expectsOutputToContain('The class "App\DoesNotExist" could not be resolved to a PHP file.');
+    }
+
+    public function test_extend_command_fails_when_controller_cannot_be_resolved(): void
+    {
+        $this->artisan('deadlock:extend', [
+            '--controller' => 'MissingController',
+            '--days' => 1,
+        ])
+            ->assertExitCode(1)
+            ->expectsOutputToContain('The class "App\Http\Controllers\MissingController" could not be resolved to a PHP file.');
     }
 
     public function test_extend_command_fails_when_resolved_file_does_not_contain_the_class(): void
