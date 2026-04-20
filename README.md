@@ -7,15 +7,13 @@
 ![Packagist License](https://img.shields.io/packagist/l/zidbih/laravel-deadlock)
 [![codecov](https://codecov.io/gh/medmahmoudhdaya/laravel-deadlock/graph/badge.svg)](https://codecov.io/gh/medmahmoudhdaya/laravel-deadlock)
 
-
 </div>
 
-Have you ever shipped a temporary workaround and never came back to it?  
-Laravel Deadlock makes those workarounds explicit and time-boxed.
+Laravel Deadlock helps you track temporary workarounds before they turn into permanent debt.
 
-Annotate classes or methods with an expiration date, then enforce them in local development and CI without affecting production.
+Annotate classes or methods with an expiration date, then enforce those deadlines in local development and CI without affecting production.
 
-**What it does**
+## What It Does
 
 - Scans the codebase for `#[Workaround]` attributes
 - Lists workarounds and their status
@@ -31,21 +29,16 @@ Annotate classes or methods with an expiration date, then enforce them in local 
 composer require zidbih/laravel-deadlock
 ```
 
-### Requirements
-
-- PHP: **8.2+**
-- Laravel: **10, 11, 12, 13**
-
 ### Compatibility
 
-- Laravel **10, 11, 12**: PHP **8.2+**
-- Laravel **13**: PHP **8.3+**
+- Laravel **10, 11, 12** with PHP **8.2+**
+- Laravel **13** with PHP **8.3+**
 
 ---
 
 ## Quick Start
 
-Annotate a temporary workaround with a clear description and expiration date.
+Add `#[Workaround]` to a class or method with a clear description and expiration date.
 
 ```php
 use Zidbih\Deadlock\Attributes\Workaround;
@@ -60,11 +53,9 @@ class PaymentService
 }
 ```
 
-**Supported targets**  
-`#[Workaround]` can be applied to **classes and methods**.  
-Workarounds inside functions or other scopes are ignored.
+`#[Workaround]` supports **classes** and **methods**. Other scopes are ignored.
 
-### What happens when it expires?
+### When It Expires
 
 - **Local Development**: Execution is blocked with an exception
 - **CI/CD**: Pipelines fail when running the check command
@@ -72,9 +63,9 @@ Workarounds inside functions or other scopes are ignored.
 
 ---
 
-## Enforcement Modes
+## Runtime Enforcement
 
-### Controllers (Automatic)
+### Automatic Enforcement for Controllers
 
 Controllers are discovered automatically and enforced at runtime.  
 Add the attribute; no additional calls are required.
@@ -95,11 +86,11 @@ final class UserController extends Controller
 }
 ```
 
-### Services, Jobs, Commands (Explicit)
+### Explicit Enforcement for Services, Jobs, and Commands
 
 For non-controller classes, enforcement is explicit by design to avoid hidden runtime behavior.
 
-#### Class-Level Enforcement
+#### Class-Level
 
 ```php
 namespace App\Services;
@@ -117,7 +108,7 @@ final class PricingService
 }
 ```
 
-#### Method-Level Enforcement
+#### Method-Level
 
 ```php
 namespace App\Services;
@@ -141,7 +132,9 @@ final class PricingService
 
 ## Artisan Commands
 
-### List Workarounds
+### `deadlock:list`
+
+List all detected workarounds and their current status.
 
 ```bash
 php artisan deadlock:list
@@ -151,33 +144,78 @@ Example output:
 
 ![List command output](docs/images/list-command-output.png)
 
-### Filters
+#### Filters
 
-Show only expired workarounds:
+- Show only expired workarounds:
 
 ```bash
 php artisan deadlock:list --expired
 ```
 
-Show only active workarounds:
+- Show only active workarounds:
 
 ```bash
 php artisan deadlock:list --active
 ```
 
-Show workarounds expiring in **7 days or less**:
+- Show workarounds expiring in **7 days or less**:
 
 ```bash
 php artisan deadlock:list --critical
 ```
 
-### Stats
+#### Summary
 
-The list command now includes a summary line by default, showing totals at a glance.
+The command includes a summary line by default so totals are visible at a glance.
 
-### Extend Workarounds
+### `deadlock:check`
 
-`deadlock:extend` updates the `expires` date of an existing `#[Workaround]` attribute in your source code.
+Fail CI when one or more workarounds have expired.
+
+```bash
+php artisan deadlock:check
+```
+
+If an expired workaround is found, the command exits with **code 1**.
+
+For machine-readable output, use JSON mode:
+
+```bash
+php artisan deadlock:check --json
+```
+
+Example JSON output:
+
+```json
+{
+  "success": false,
+  "expired_count": 1,
+  "expired": [
+    {
+      "description": "Temporary payment gateway workaround",
+      "expires": "2025-02-10",
+      "location": "PaymentService::process",
+      "file": "/app/Services/PaymentService.php",
+      "line": 18,
+      "class": "PaymentService",
+      "method": "process"
+    }
+  ]
+}
+```
+
+Example failure output:
+
+```
+Expired workarounds detected:
+
+- Temporary payment gateway workaround | expires: 2025-02-10 | PaymentService::process
+- Legacy admin controller | expires: 2025-01-31 | AdminController
+```
+
+### `deadlock:extend`
+
+Update the `expires` date of an existing `#[Workaround]` attribute in your source code.
 
 It supports three target modes:
 
@@ -268,7 +306,7 @@ Extend a nested controller method workaround:
 php artisan deadlock:extend --controller=Admin\TestController --method=index --date=2026-06-01
 ```
 
-#### Validation Rules
+#### Validation
 
 - Use exactly one of `--class` or `--controller`
 - `--method` and `--all` cannot be used together
@@ -280,49 +318,12 @@ php artisan deadlock:extend --controller=Admin\TestController --method=index --d
 
 ---
 
-## CI/CD Enforcement
+## CI/CD Integration
 
 Run the check command in your pipeline:
 
 ```bash
 php artisan deadlock:check
-```
-
-If an expired workaround is found, the command exits with **code 1**.
-
-For machine-readable output, use JSON mode:
-
-```bash
-php artisan deadlock:check --json
-```
-
-Example JSON output:
-
-```json
-{
-  "success": false,
-  "expired_count": 1,
-  "expired": [
-    {
-      "description": "Temporary payment gateway workaround",
-      "expires": "2025-02-10",
-      "location": "PaymentService::process",
-      "file": "/app/Services/PaymentService.php",
-      "line": 18,
-      "class": "PaymentService",
-      "method": "process"
-    }
-  ]
-}
-```
-
-Example failure output:
-
-```
-Expired workarounds detected:
-
-- Temporary payment gateway workaround | expires: 2025-02-10 | PaymentService::process
-- Legacy admin controller | expires: 2025-01-31 | AdminController
 ```
 
 CI example:
@@ -334,9 +335,9 @@ CI example:
 
 ---
 
-## Runtime Enforcement (Local Only)
+## Runtime Exceptions
 
-When an expired workaround is accessed locally, a `WorkaroundExpiredException` is thrown with:
+When expired code is accessed locally, a `WorkaroundExpiredException` is thrown with:
 
 - Description
 - Expiration date
@@ -350,7 +351,7 @@ Example exception output:
 
 ## Production Safety
 
-Laravel Deadlock never enforces debt in production.
+Laravel Deadlock never enforces workaround deadlines in production.
 
 - Runtime exceptions only occur in **local** environments
 - CI blocks merges before debt reaches production
@@ -358,16 +359,12 @@ Laravel Deadlock never enforces debt in production.
 
 ---
 
-## Testing
+## Contributing
 
-The test suite uses **PHPUnit** and **Orchestra Testbench** for compatibility across supported Laravel versions.
+See [CONTRIBUTING.md](CONTRIBUTING.md)
 
 ---
 
 ## License
 
 [MIT](LICENSE)
-
-## Contributing
-
-See [CONTRIBUTING.md](CONTRIBUTING.md)
