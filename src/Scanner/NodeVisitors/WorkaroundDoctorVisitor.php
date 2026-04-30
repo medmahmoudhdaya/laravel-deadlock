@@ -14,6 +14,7 @@ use PhpParser\Node\Expr\StaticCall;
 use PhpParser\Node\Expr\Variable;
 use PhpParser\Node\Identifier;
 use PhpParser\Node\Name;
+use PhpParser\Node\Scalar\MagicConst\Class_ as ClassMagicConst;
 use PhpParser\Node\Scalar\MagicConst\Function_ as FunctionMagicConst;
 use PhpParser\Node\Scalar\MagicConst\Method;
 use PhpParser\Node\Scalar\String_;
@@ -26,6 +27,7 @@ use PhpParser\Node\Stmt\Function_ as FunctionStatement;
 use PhpParser\Node\Stmt\Interface_;
 use PhpParser\Node\Stmt\Property;
 use PhpParser\Node\Stmt\Trait_;
+use PhpParser\Node\Stmt\UseUse;
 use PhpParser\NodeFinder;
 use PhpParser\NodeVisitorAbstract;
 use Zidbih\Deadlock\Scanner\DoctorIssue;
@@ -35,10 +37,19 @@ final class WorkaroundDoctorVisitor extends NodeVisitorAbstract
     /** @var DoctorIssue[] */
     public array $issues = [];
 
+    /** @var string[] */
+    private array $guardAliases = ['DeadlockGuard'];
+
     public function __construct(private readonly string $file) {}
 
     public function enterNode(Node $node): void
     {
+        if ($node instanceof UseUse) {
+            $this->trackGuardAlias($node);
+
+            return;
+        }
+
         $attributes = $this->workaroundAttributes($node);
 
         if ($attributes === [] && ! $node instanceof Class_) {
@@ -279,7 +290,17 @@ final class WorkaroundDoctorVisitor extends NodeVisitorAbstract
 
         return $name === 'DeadlockGuard'
             || $name === 'Zidbih\\Deadlock\\Support\\DeadlockGuard'
+            || in_array($name, $this->guardAliases, true)
             || str_ends_with($name, '\\DeadlockGuard');
+    }
+
+    private function trackGuardAlias(UseUse $use): void
+    {
+        if ($use->name->toString() !== 'Zidbih\\Deadlock\\Support\\DeadlockGuard') {
+            return;
+        }
+
+        $this->guardAliases[] = $use->alias?->toString() ?? 'DeadlockGuard';
     }
 
     private function isValidMethodGuard(StaticCall $call, string $methodName): bool
@@ -317,7 +338,7 @@ final class WorkaroundDoctorVisitor extends NodeVisitorAbstract
             return true;
         }
 
-        if ($argument instanceof String_) {
+        if ($argument instanceof String_ || $argument instanceof ClassMagicConst) {
             return true;
         }
 

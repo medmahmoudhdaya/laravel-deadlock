@@ -75,4 +75,72 @@ PHP);
             ->expectsOutputToContain('Laravel Deadlock Doctor')
             ->expectsOutputToContain('OK No doctor issues found.');
     }
+
+    public function test_doctor_command_reports_invalid_attributes_when_supported_scan_fails(): void
+    {
+        $this->path = app_path('DoctorCommandInvalidAttribute.php');
+
+        File::put($this->path, <<<'PHP'
+<?php
+
+namespace App;
+
+use Zidbih\Deadlock\Attributes\Workaround;
+
+#[Workaround('Missing expires')]
+class DoctorCommandInvalidAttribute
+{
+}
+PHP);
+
+        $this->artisan('deadlock:doctor')
+            ->assertExitCode(1)
+            ->expectsOutputToContain('WARN Supported workaround scan could not complete:')
+            ->expectsOutputToContain('Invalid attributes')
+            ->expectsOutputToContain('Workaround attribute must receive exactly 2 arguments.');
+    }
+
+    public function test_doctor_command_groups_unsupported_and_parse_issues(): void
+    {
+        $this->path = app_path('DoctorCommandUnsupported.php');
+        $brokenPath = app_path('DoctorCommandBrokenSyntax.php');
+
+        File::put($this->path, <<<'PHP'
+<?php
+
+namespace App;
+
+use Zidbih\Deadlock\Attributes\Workaround;
+
+class DoctorCommandUnsupported
+{
+    #[Workaround(description: 'Unsupported property', expires: '2099-01-01')]
+    public string $name;
+}
+PHP);
+
+        File::put($brokenPath, <<<'PHP'
+<?php
+
+namespace App;
+
+class DoctorCommandBrokenSyntax
+{
+    public function broken(: void
+    {
+    }
+}
+PHP);
+
+        try {
+            $this->artisan('deadlock:doctor')
+                ->assertExitCode(1)
+                ->expectsOutputToContain('Unsupported targets')
+                ->expectsOutputToContain('#[Workaround] is used on a property.')
+                ->expectsOutputToContain('Parse issues')
+                ->expectsOutputToContain('The file could not be parsed:');
+        } finally {
+            File::delete($brokenPath);
+        }
+    }
 }
