@@ -213,6 +213,16 @@ Expired workarounds detected:
 - Legacy admin controller | expires: 2025-01-31 | AdminController
 ```
 
+### `deadlock:doctor`
+
+Diagnose workaround usage that may look valid but will not behave as expected.
+
+```bash
+php artisan deadlock:doctor
+```
+
+The doctor command reports unsupported `#[Workaround]` targets, invalid attribute arguments, and missing or incorrect `DeadlockGuard::check(...)` calls for explicit runtime enforcement.
+
 ### `deadlock:extend`
 
 Update the `expires` date of an existing `#[Workaround]` attribute in your source code.

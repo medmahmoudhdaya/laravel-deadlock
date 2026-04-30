@@ -7,16 +7,19 @@ namespace Zidbih\Deadlock;
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Support\ServiceProvider;
 use Zidbih\Deadlock\Console\CheckDeadlocksCommand;
+use Zidbih\Deadlock\Console\DoctorDeadlocksCommand;
 use Zidbih\Deadlock\Console\ExtendDeadlocksCommand;
 use Zidbih\Deadlock\Console\ListDeadlocksCommand;
 use Zidbih\Deadlock\Middleware\DeadlockGuardMiddleware;
 use Zidbih\Deadlock\Scanner\DeadlockScanner;
+use Zidbih\Deadlock\Scanner\DoctorScanner;
 
 final class DeadlockServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
         $this->app->singleton(DeadlockScanner::class);
+        $this->app->singleton(DoctorScanner::class);
     }
 
     public function boot(): void
@@ -36,6 +39,7 @@ final class DeadlockServiceProvider extends ServiceProvider
             $this->commands([
                 ListDeadlocksCommand::class,
                 CheckDeadlocksCommand::class,
+                DoctorDeadlocksCommand::class,
                 ExtendDeadlocksCommand::class,
             ]);
         }

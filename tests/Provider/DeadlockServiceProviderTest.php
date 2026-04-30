@@ -28,6 +28,7 @@ final class DeadlockServiceProviderTest extends TestCase
 
         $this->assertArrayHasKey('deadlock:list', $commands);
         $this->assertArrayHasKey('deadlock:check', $commands);
+        $this->assertArrayHasKey('deadlock:doctor', $commands);
         $this->assertArrayHasKey('deadlock:extend', $commands);
     }
 }
@@ -82,6 +83,7 @@ final class DeadlockServiceProviderNonConsoleTest extends Orchestra
 
         $this->assertArrayNotHasKey('deadlock:list', $commands);
         $this->assertArrayNotHasKey('deadlock:check', $commands);
+        $this->assertArrayNotHasKey('deadlock:doctor', $commands);
         $this->assertArrayNotHasKey('deadlock:extend', $commands);
     }
 }
