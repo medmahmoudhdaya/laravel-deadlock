@@ -17,36 +17,40 @@ final class DoctorDeadlocksCommand extends Command
 
     public function handle(DeadlockScanner $deadlockScanner, DoctorScanner $doctorScanner): int
     {
-        $this->info('Laravel Deadlock Doctor');
+        $this->line('<fg=cyan;options=bold>Laravel Deadlock Doctor</>');
         $this->line('');
 
         try {
             $workarounds = $deadlockScanner->scan(app_path());
-            $this->line("OK {$this->countLabel(count($workarounds), 'supported workaround')} found.");
+            $this->ok($this->countLabel(count($workarounds), 'supported workaround').' found');
         } catch (\Throwable $exception) {
-            $this->warn('WARN Supported workaround scan could not complete: '.$exception->getMessage());
+            $this->warning('Supported workaround scan could not complete: '.$exception->getMessage());
         }
 
         $issues = $doctorScanner->scan(app_path());
 
         if ($issues === []) {
-            $this->line('OK No doctor issues found.');
+            $this->ok('No doctor issues found');
 
             return self::SUCCESS;
         }
 
-        $this->warn("WARN {$this->countLabel(count($issues), 'doctor issue')} found.");
+        $this->warning($this->countLabel(count($issues), 'doctor issue').' found');
         $this->line('');
 
         foreach ($this->groupByType($issues) as $type => $groupedIssues) {
-            $this->line($this->heading($type).':');
+            $this->line('<fg=cyan;options=bold>'.$this->heading($type).':</>');
 
             foreach ($groupedIssues as $issue) {
-                $this->line(sprintf('- %s:%d', $issue->file, $issue->line));
-                $this->line('  '.$issue->message);
+                $this->line(sprintf(
+                    '<fg=yellow>[WARN]</> <fg=gray>%s:%d</>',
+                    $issue->file,
+                    $issue->line
+                ));
+                $this->line('       '.$issue->message);
 
                 if ($issue->suggestion !== null) {
-                    $this->line('  '.$issue->suggestion);
+                    $this->line('       <fg=green>'.$issue->suggestion.'</>');
                 }
             }
 
@@ -59,6 +63,16 @@ final class DoctorDeadlocksCommand extends Command
     private function countLabel(int $count, string $label): string
     {
         return $count.' '.$label.($count === 1 ? '' : 's');
+    }
+
+    private function ok(string $message): void
+    {
+        $this->line('<fg=green>[OK]</>   '.$message);
+    }
+
+    private function warning(string $message): void
+    {
+        $this->line('<fg=yellow>[WARN]</> '.$message);
     }
 
     /**

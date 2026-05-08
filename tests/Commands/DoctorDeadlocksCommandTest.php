@@ -43,7 +43,8 @@ PHP);
         $this->artisan('deadlock:doctor')
             ->assertExitCode(1)
             ->expectsOutputToContain('Laravel Deadlock Doctor')
-            ->expectsOutputToContain('supported workaround found')
+            ->expectsOutputToContain('[OK]   1 supported workaround found')
+            ->expectsOutputToContain('[WARN] 1 doctor issue found')
             ->expectsOutputToContain('Guard issues')
             ->expectsOutputToContain('Method-level workaround is not explicitly guarded.');
     }
@@ -73,7 +74,7 @@ PHP);
         $this->artisan('deadlock:doctor')
             ->assertExitCode(0)
             ->expectsOutputToContain('Laravel Deadlock Doctor')
-            ->expectsOutputToContain('OK No doctor issues found.');
+            ->expectsOutputToContain('[OK]   No doctor issues found');
     }
 
     public function test_doctor_command_reports_invalid_attributes_when_supported_scan_fails(): void
@@ -95,7 +96,7 @@ PHP);
 
         $this->artisan('deadlock:doctor')
             ->assertExitCode(1)
-            ->expectsOutputToContain('WARN Supported workaround scan could not complete:')
+            ->expectsOutputToContain('[WARN] Supported workaround scan could not complete:')
             ->expectsOutputToContain('Invalid attributes')
             ->expectsOutputToContain('Workaround attribute must receive exactly 2 arguments.');
     }
