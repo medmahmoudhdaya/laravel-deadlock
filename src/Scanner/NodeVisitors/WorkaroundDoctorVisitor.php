@@ -4,8 +4,6 @@ declare(strict_types=1);
 
 namespace Zidbih\Deadlock\Scanner\NodeVisitors;
 
-use DateTimeImmutable;
-use DateTimeZone;
 use PhpParser\Node;
 use PhpParser\Node\Arg;
 use PhpParser\Node\Attribute as PhpAttribute;
@@ -31,6 +29,7 @@ use PhpParser\Node\Stmt\UseUse;
 use PhpParser\NodeFinder;
 use PhpParser\NodeVisitorAbstract;
 use Zidbih\Deadlock\Scanner\DoctorIssue;
+use Zidbih\Deadlock\Scanner\WorkaroundAttributeParser;
 
 final class WorkaroundDoctorVisitor extends NodeVisitorAbstract
 {
@@ -101,61 +100,15 @@ final class WorkaroundDoctorVisitor extends NodeVisitorAbstract
 
     private function validateAttribute(PhpAttribute $attribute): void
     {
-        if (count($attribute->args) !== 2) {
+        foreach (WorkaroundAttributeParser::validate($attribute) as $message) {
             $this->issues[] = new DoctorIssue(
                 type: 'invalid-attribute',
-                message: 'Workaround attribute must receive exactly 2 arguments.',
+                message: $message,
                 file: $this->file,
                 line: $attribute->getLine(),
-                suggestion: 'Use #[Workaround(description: "...", expires: "YYYY-MM-DD")].'
-            );
-
-            return;
-        }
-
-        $description = $attribute->args[0]->value;
-        $expires = $attribute->args[1]->value;
-
-        if (! $description instanceof String_) {
-            $this->issues[] = new DoctorIssue(
-                type: 'invalid-attribute',
-                message: 'Workaround description must be a string literal.',
-                file: $this->file,
-                line: $attribute->getLine()
-            );
-        }
-
-        if (! $expires instanceof String_) {
-            $this->issues[] = new DoctorIssue(
-                type: 'invalid-attribute',
-                message: 'Workaround expires must be a string literal in YYYY-MM-DD format.',
-                file: $this->file,
-                line: $attribute->getLine()
-            );
-
-            return;
-        }
-
-        if (! preg_match('/^\d{4}-\d{2}-\d{2}$/', $expires->value)) {
-            $this->issues[] = new DoctorIssue(
-                type: 'invalid-attribute',
-                message: "Invalid expires date '{$expires->value}'. Expected YYYY-MM-DD.",
-                file: $this->file,
-                line: $attribute->getLine()
-            );
-
-            return;
-        }
-
-        $date = DateTimeImmutable::createFromFormat('!Y-m-d', $expires->value, new DateTimeZone('UTC'));
-        $errors = DateTimeImmutable::getLastErrors();
-
-        if ($date === false || ($errors['warning_count'] ?? 0) > 0 || ($errors['error_count'] ?? 0) > 0) {
-            $this->issues[] = new DoctorIssue(
-                type: 'invalid-attribute',
-                message: "Invalid expires date '{$expires->value}'.",
-                file: $this->file,
-                line: $attribute->getLine()
+                suggestion: $message === 'Workaround attribute must receive exactly 2 arguments.'
+                    ? 'Use #[Workaround(description: "...", expires: "YYYY-MM-DD")].'
+                    : null
             );
         }
     }
