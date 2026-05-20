@@ -223,6 +223,10 @@ php artisan deadlock:doctor
 
 The doctor command reports unsupported `#[Workaround]` targets, invalid attribute arguments, and missing or incorrect `DeadlockGuard::check(...)` calls for explicit runtime enforcement.
 
+Example output:
+
+![Doctor command output](docs/images/doctor-command-output.png)
+
 ### `deadlock:extend`
 
 Update the `expires` date of an existing `#[Workaround]` attribute in your source code.
