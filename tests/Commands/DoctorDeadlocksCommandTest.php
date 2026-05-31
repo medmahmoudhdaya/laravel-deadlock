@@ -43,6 +43,11 @@ PHP);
         $this->artisan('deadlock:doctor')
             ->assertExitCode(1)
             ->expectsOutputToContain('Laravel Deadlock Doctor')
+            ->expectsOutputToContain('Health checks')
+            ->expectsOutputToContain('[OK]   Package service provider loaded')
+            ->expectsOutputToContain('[OK]   Deadlock commands registered')
+            ->expectsOutputToContain('[OK]   Controller middleware active for web and api routes')
+            ->expectsOutputToContain('[OK]   Runtime enforcement active in local environment')
             ->expectsOutputToContain('[OK]   1 supported workaround found')
             ->expectsOutputToContain('[WARN] 1 doctor issue found')
             ->expectsOutputToContain('Guard issues')
@@ -74,6 +79,7 @@ PHP);
         $this->artisan('deadlock:doctor')
             ->assertExitCode(0)
             ->expectsOutputToContain('Laravel Deadlock Doctor')
+            ->expectsOutputToContain('Health checks')
             ->expectsOutputToContain('[OK]   No doctor issues found');
     }
 
@@ -143,5 +149,16 @@ PHP);
         } finally {
             File::delete($brokenPath);
         }
+    }
+
+    public function test_doctor_command_explains_non_local_runtime_behavior(): void
+    {
+        $this->app['env'] = 'production';
+        $this->app['config']->set('app.env', 'production');
+
+        $this->artisan('deadlock:doctor')
+            ->assertExitCode(0)
+            ->expectsOutputToContain('[INFO] Controller middleware is only registered in local environment')
+            ->expectsOutputToContain('[INFO] Runtime enforcement disabled outside local environment');
     }
 }

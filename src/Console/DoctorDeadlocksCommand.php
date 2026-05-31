@@ -5,6 +5,9 @@ declare(strict_types=1);
 namespace Zidbih\Deadlock\Console;
 
 use Illuminate\Console\Command;
+use Illuminate\Contracts\Http\Kernel;
+use Illuminate\Support\Facades\Artisan;
+use Zidbih\Deadlock\Middleware\DeadlockGuardMiddleware;
 use Zidbih\Deadlock\Scanner\DeadlockScanner;
 use Zidbih\Deadlock\Scanner\DoctorIssue;
 use Zidbih\Deadlock\Scanner\DoctorScanner;
@@ -19,6 +22,8 @@ final class DoctorDeadlocksCommand extends Command
     {
         $this->line('<fg=cyan;options=bold>Laravel Deadlock Doctor</>');
         $this->line('');
+
+        $this->renderHealthChecks();
 
         try {
             $workarounds = $deadlockScanner->scan(app_path());
@@ -39,7 +44,7 @@ final class DoctorDeadlocksCommand extends Command
         $this->line('');
 
         foreach ($this->groupByType($issues) as $type => $groupedIssues) {
-            $this->line('<fg=cyan;options=bold>'.$this->heading($type).':</>');
+            $this->section($this->heading($type));
 
             foreach ($groupedIssues as $issue) {
                 $this->line(sprintf(
@@ -60,6 +65,57 @@ final class DoctorDeadlocksCommand extends Command
         return self::FAILURE;
     }
 
+    private function renderHealthChecks(): void
+    {
+        $this->section('Health checks');
+        $this->ok('Package service provider loaded');
+
+        $missingCommands = array_diff(
+            ['deadlock:list', 'deadlock:check', 'deadlock:doctor', 'deadlock:extend'],
+            array_keys(Artisan::all())
+        );
+
+        if ($missingCommands === []) {
+            $this->ok('Deadlock commands registered');
+        } else {
+            $this->warning('Missing commands: '.implode(', ', $missingCommands));
+        }
+
+        if ($this->laravel->environment('local')) {
+            $missingGroups = $this->missingMiddlewareGroups();
+
+            if ($missingGroups === []) {
+                $this->ok('Controller middleware active for web and api routes');
+            } else {
+                $this->warning('Controller middleware missing from '.implode(', ', $missingGroups).' routes');
+            }
+
+            $this->ok('Runtime enforcement active in local environment');
+        } else {
+            $this->infoLine('Controller middleware is only registered in local environment');
+            $this->infoLine('Runtime enforcement disabled outside local environment');
+        }
+
+        $this->line('');
+    }
+
+    /**
+     * @return string[]
+     */
+    private function missingMiddlewareGroups(): array
+    {
+        $groups = $this->laravel->make(Kernel::class)->getMiddlewareGroups();
+        $missing = [];
+
+        foreach (['web', 'api'] as $group) {
+            if (! in_array(DeadlockGuardMiddleware::class, $groups[$group] ?? [], true)) {
+                $missing[] = $group;
+            }
+        }
+
+        return $missing;
+    }
+
     private function countLabel(int $count, string $label): string
     {
         return $count.' '.$label.($count === 1 ? '' : 's');
@@ -67,12 +123,27 @@ final class DoctorDeadlocksCommand extends Command
 
     private function ok(string $message): void
     {
-        $this->line('<fg=green>[OK]</>   '.$message);
+        $this->status('OK', 'green', $message);
     }
 
     private function warning(string $message): void
     {
-        $this->line('<fg=yellow>[WARN]</> '.$message);
+        $this->status('WARN', 'yellow', $message);
+    }
+
+    private function infoLine(string $message): void
+    {
+        $this->status('INFO', 'blue', $message);
+    }
+
+    private function status(string $label, string $color, string $message): void
+    {
+        $this->line(sprintf('<fg=%s>%s</> %s', $color, str_pad("[{$label}]", 6), $message));
+    }
+
+    private function section(string $title): void
+    {
+        $this->line('<fg=cyan;options=bold>'.$title.':</>');
     }
 
     /**
