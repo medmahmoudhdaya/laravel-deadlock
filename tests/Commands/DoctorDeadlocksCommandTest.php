@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace Zidbih\Deadlock\Tests\Commands;
 
+use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Support\Facades\File;
+use Zidbih\Deadlock\Middleware\DeadlockGuardMiddleware;
 use Zidbih\Deadlock\Tests\TestCase;
 
 final class DoctorDeadlocksCommandTest extends TestCase
@@ -161,5 +163,34 @@ PHP);
             ->assertExitCode(0)
             ->expectsOutputToContain('[INFO] Controller middleware is only registered in local environment')
             ->expectsOutputToContain('[INFO] Runtime enforcement disabled outside local environment');
+    }
+
+    public function test_doctor_command_warns_when_local_middleware_groups_are_missing(): void
+    {
+        $kernel = $this->app->make(Kernel::class);
+        $reflection = new \ReflectionObject($kernel);
+
+        while (! $reflection->hasProperty('middlewareGroups')) {
+            $parent = $reflection->getParentClass();
+            $this->assertNotFalse($parent);
+
+            $reflection = $parent;
+        }
+
+        $property = $reflection->getProperty('middlewareGroups');
+        $groups = $property->getValue($kernel);
+
+        foreach (['web', 'api'] as $group) {
+            $groups[$group] = array_values(array_filter(
+                $groups[$group] ?? [],
+                fn (string $middleware): bool => $middleware !== DeadlockGuardMiddleware::class
+            ));
+        }
+
+        $property->setValue($kernel, $groups);
+
+        $this->artisan('deadlock:doctor')
+            ->assertExitCode(0)
+            ->expectsOutputToContain('[WARN] Controller middleware missing from web, api routes');
     }
 }
