@@ -42,7 +42,7 @@ PHP);
 
         $this->artisan('deadlock:doctor')
             ->assertExitCode(1)
-            ->expectsOutputToContain('Laravel Deadlock Doctor')
+            ->expectsOutputToContain('Doctor')
             ->expectsOutputToContain('Health checks')
             ->expectsOutputToContain('[OK]   Package service provider loaded')
             ->expectsOutputToContain('[OK]   Deadlock commands registered')
@@ -79,7 +79,7 @@ PHP);
 
         $this->artisan('deadlock:doctor')
             ->assertExitCode(0)
-            ->expectsOutputToContain('Laravel Deadlock Doctor')
+            ->expectsOutputToContain('Doctor')
             ->expectsOutputToContain('Health checks')
             ->expectsOutputToContain('[OK]   No doctor issues found');
     }

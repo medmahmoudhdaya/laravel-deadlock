@@ -20,7 +20,7 @@ final class DoctorDeadlocksCommand extends Command
 
     public function handle(DeadlockScanner $deadlockScanner, DoctorScanner $doctorScanner): int
     {
-        $this->line('<fg=cyan;options=bold>Laravel Deadlock Doctor</>');
+        $this->renderTitle();
         $this->line('');
 
         $this->renderHealthChecks();
@@ -64,6 +64,22 @@ final class DoctorDeadlocksCommand extends Command
         }
 
         return self::FAILURE;
+    }
+
+    private function renderTitle(): void
+    {
+        $banner = <<<'ASCII'
+ _                              _   ___              _ _            _
+| |    __ _ _ __ __ ___   _____| | |   \ ___  __ _ __| | | ___   ___| | __
+| |   / _` | `__/ _` \ \ / / _ \ | | |) / _ \/ _` |/ _` | |/ _ \ / __| |/ /
+| |__| (_| | | | (_| |\ V /  __/ | |___/  __/ (_| | (_| | | (_) | (__|   <
+|_____\__,_|_|  \__,_| \_/ \___|_| |____/\___|\__,_|\__,_|_|\___/ \___|_|\_\
+                                  Doctor
+ASCII;
+
+        foreach (explode(PHP_EOL, $banner) as $line) {
+            $this->line('<fg=cyan;options=bold>'.$line.'</>');
+        }
     }
 
     private function renderHealthChecks(): void
