@@ -48,6 +48,7 @@ PHP);
             ->expectsOutputToContain('[OK]   Deadlock commands registered')
             ->expectsOutputToContain('[OK]   Controller middleware active for web and api routes')
             ->expectsOutputToContain('[OK]   Runtime enforcement active in local environment')
+            ->expectsOutputToContain('Scan results')
             ->expectsOutputToContain('[OK]   1 supported workaround found')
             ->expectsOutputToContain('[WARN] 1 doctor issue found')
             ->expectsOutputToContain('Guard issues')

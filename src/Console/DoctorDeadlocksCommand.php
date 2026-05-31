@@ -24,6 +24,7 @@ final class DoctorDeadlocksCommand extends Command
         $this->line('');
 
         $this->renderHealthChecks();
+        $this->section('Scan results');
 
         try {
             $workarounds = $deadlockScanner->scan(app_path());
@@ -67,8 +68,9 @@ final class DoctorDeadlocksCommand extends Command
 
     private function renderHealthChecks(): void
     {
-        $this->section('Health checks');
-        $this->ok('Package service provider loaded');
+        $rows = [
+            $this->healthRow('OK', 'green', 'Package service provider loaded'),
+        ];
 
         $missingCommands = array_diff(
             ['deadlock:list', 'deadlock:check', 'deadlock:doctor', 'deadlock:extend'],
@@ -76,26 +78,27 @@ final class DoctorDeadlocksCommand extends Command
         );
 
         if ($missingCommands === []) {
-            $this->ok('Deadlock commands registered');
+            $rows[] = $this->healthRow('OK', 'green', 'Deadlock commands registered');
         } else {
-            $this->warning('Missing commands: '.implode(', ', $missingCommands));
+            $rows[] = $this->healthRow('WARN', 'yellow', 'Missing commands: '.implode(', ', $missingCommands));
         }
 
         if ($this->laravel->environment('local')) {
             $missingGroups = $this->missingMiddlewareGroups();
 
             if ($missingGroups === []) {
-                $this->ok('Controller middleware active for web and api routes');
+                $rows[] = $this->healthRow('OK', 'green', 'Controller middleware active for web and api routes');
             } else {
-                $this->warning('Controller middleware missing from '.implode(', ', $missingGroups).' routes');
+                $rows[] = $this->healthRow('WARN', 'yellow', 'Controller middleware missing from '.implode(', ', $missingGroups).' routes');
             }
 
-            $this->ok('Runtime enforcement active in local environment');
+            $rows[] = $this->healthRow('OK', 'green', 'Runtime enforcement active in local environment');
         } else {
-            $this->infoLine('Controller middleware is only registered in local environment');
-            $this->infoLine('Runtime enforcement disabled outside local environment');
+            $rows[] = $this->healthRow('INFO', 'blue', 'Controller middleware is only registered in local environment');
+            $rows[] = $this->healthRow('INFO', 'blue', 'Runtime enforcement disabled outside local environment');
         }
 
+        $this->renderHealthBox($rows);
         $this->line('');
     }
 
@@ -134,6 +137,37 @@ final class DoctorDeadlocksCommand extends Command
     private function infoLine(string $message): void
     {
         $this->status('INFO', 'blue', $message);
+    }
+
+    private function healthRow(string $label, string $color, string $message): array
+    {
+        return compact('label', 'color', 'message');
+    }
+
+    /**
+     * @param  array<int, array{label: string, color: string, message: string}>  $rows
+     */
+    private function renderHealthBox(array $rows): void
+    {
+        $width = 72;
+        $this->line('<fg=gray>+'.str_repeat('-', $width - 2).'+</>');
+        $this->line('<fg=gray>|</> <fg=cyan;options=bold>'.str_pad('Health checks', $width - 4).'</> <fg=gray>|</>');
+        $this->line('<fg=gray>|</> '.str_repeat(' ', $width - 4).' <fg=gray>|</>');
+
+        foreach ($rows as $row) {
+            $plain = str_pad("[{$row['label']}]", 6).' '.$row['message'];
+            $padding = max(0, $width - 4 - strlen($plain));
+
+            $this->line(sprintf(
+                '<fg=gray>|</> <fg=%s>%s</> %s%s <fg=gray>|</>',
+                $row['color'],
+                str_pad("[{$row['label']}]", 6),
+                $row['message'],
+                str_repeat(' ', $padding)
+            ));
+        }
+
+        $this->line('<fg=gray>+'.str_repeat('-', $width - 2).'+</>');
     }
 
     private function status(string $label, string $color, string $message): void
