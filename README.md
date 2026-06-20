@@ -178,6 +178,14 @@ php artisan deadlock:check
 
 If an expired workaround is found, the command exits with **code 1**.
 
+To fail before a workaround expires, use `--fail-within`:
+
+```bash
+php artisan deadlock:check --fail-within=7
+```
+
+This fails when a workaround is already expired or expires within the next **7 days**.
+
 For machine-readable output, use JSON mode:
 
 ```bash
