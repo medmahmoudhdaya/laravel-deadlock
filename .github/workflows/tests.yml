@@ -34,8 +34,8 @@ jobs:
           php-version: ${{ matrix.php }}
           coverage: pcov
 
-      - name: Allow legacy Laravel 10 test install
-        if: matrix.laravel == '^10.0'
+      - name: Allow legacy Laravel compatibility installs
+        if: matrix.laravel == '^10.0' || matrix.laravel == '^11.0'
         run: composer config --global policy.advisories.block false
 
       - name: Configure test matrix dependencies
