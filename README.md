@@ -186,6 +186,14 @@ php artisan deadlock:check --fail-within=7
 
 This fails when a workaround is already expired or expires within the next **7 days**.
 
+To also fail when invalid workaround usage is detected, use strict mode:
+
+```bash
+php artisan deadlock:check --strict
+```
+
+Strict mode reuses the doctor checks and is useful in CI when you want unsupported targets, invalid attributes, or missing `DeadlockGuard::check(...)` calls to fail the pipeline.
+
 For machine-readable output, use JSON mode:
 
 ```bash

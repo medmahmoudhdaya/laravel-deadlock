@@ -8,16 +8,19 @@ use Illuminate\Console\Command;
 use Illuminate\Support\Carbon;
 use Zidbih\Deadlock\Scanner\DeadlockResult;
 use Zidbih\Deadlock\Scanner\DeadlockScanner;
+use Zidbih\Deadlock\Scanner\DoctorIssue;
+use Zidbih\Deadlock\Scanner\DoctorScanner;
 
 final class CheckDeadlocksCommand extends Command
 {
     protected $signature = 'deadlock:check
     {--json : Output the results as JSON}
+    {--strict : Also fail when doctor issues are found}
     {--fail-within= : Fail when active workarounds expire within the given number of days}';
 
     protected $description = 'Fail if any technical debt workaround is expired';
 
-    public function handle(DeadlockScanner $scanner): int
+    public function handle(DeadlockScanner $scanner, DoctorScanner $doctorScanner): int
     {
         $failWithin = $this->failWithinDays();
 
@@ -27,7 +30,18 @@ final class CheckDeadlocksCommand extends Command
             return self::INVALID;
         }
 
-        $results = $scanner->scan(app_path());
+        $strict = (bool) $this->option('strict');
+        $doctorIssues = $strict ? $doctorScanner->scan(app_path()) : [];
+
+        try {
+            $results = $scanner->scan(app_path());
+        } catch (\Throwable $exception) {
+            if (! $strict) {
+                throw $exception;
+            }
+
+            $results = [];
+        }
 
         $expired = array_filter(
             $results,
@@ -41,17 +55,16 @@ final class CheckDeadlocksCommand extends Command
                 fn (DeadlockResult $r) => ! $r->isExpired() && $this->expiresWithin($r, $failWithin)
             );
 
-        if ($this->option('json')) {
-            $this->line($this->toJson($expired, $expiringSoon, $failWithin));
+        $failed = ! empty($expired) || ! empty($expiringSoon) || ! empty($doctorIssues);
 
-            return empty($expired) && empty($expiringSoon) ? self::SUCCESS : self::FAILURE;
+        if ($this->option('json')) {
+            $this->line($this->toJson($expired, $expiringSoon, $doctorIssues, $failWithin, $strict));
+
+            return $failed ? self::FAILURE : self::SUCCESS;
         }
 
-        if (empty($expired) && empty($expiringSoon)) {
-            $this->info($failWithin === null
-                ? 'No expired workarounds found.'
-                : 'No expired or upcoming workarounds found.'
-            );
+        if (! $failed) {
+            $this->info($this->successMessage($failWithin, $strict));
 
             return self::SUCCESS;
         }
@@ -72,23 +85,41 @@ final class CheckDeadlocksCommand extends Command
             $this->renderResults($expiringSoon);
         }
 
+        if (! empty($doctorIssues)) {
+            if (! empty($expired) || ! empty($expiringSoon)) {
+                $this->line('');
+            }
+
+            $this->error('Doctor issues detected:');
+
+            $this->renderDoctorIssues($doctorIssues);
+        }
+
         return self::FAILURE;
     }
 
     /**
      * @param  array<int, DeadlockResult>  $expired
      * @param  array<int, DeadlockResult>  $expiringSoon
+     * @param  array<int, DoctorIssue>  $doctorIssues
      */
-    private function toJson(array $expired, array $expiringSoon, ?int $failWithin): string
+    private function toJson(array $expired, array $expiringSoon, array $doctorIssues, ?int $failWithin, bool $strict): string
     {
-        return (string) json_encode([
-            'success' => empty($expired) && empty($expiringSoon),
+        $payload = [
+            'success' => empty($expired) && empty($expiringSoon) && empty($doctorIssues),
             'fail_within_days' => $failWithin,
             'expired_count' => count($expired),
             'expiring_soon_count' => count($expiringSoon),
             'expired' => $this->resultsToArray($expired),
             'expiring_soon' => $this->resultsToArray($expiringSoon),
-        ], JSON_THROW_ON_ERROR);
+        ];
+
+        if ($strict) {
+            $payload['doctor_issue_count'] = count($doctorIssues);
+            $payload['doctor_issues'] = $this->doctorIssuesToArray($doctorIssues);
+        }
+
+        return (string) json_encode($payload, JSON_THROW_ON_ERROR);
     }
 
     private function failWithinDays(): int|false|null
@@ -118,6 +149,23 @@ final class CheckDeadlocksCommand extends Command
         return $daysRemaining >= 0 && $daysRemaining <= $days;
     }
 
+    private function successMessage(?int $failWithin, bool $strict): string
+    {
+        if ($strict && $failWithin !== null) {
+            return 'No expired, upcoming, or doctor issues found.';
+        }
+
+        if ($strict) {
+            return 'No expired workarounds or doctor issues found.';
+        }
+
+        if ($failWithin !== null) {
+            return 'No expired or upcoming workarounds found.';
+        }
+
+        return 'No expired workarounds found.';
+    }
+
     /**
      * @param  array<int, DeadlockResult>  $results
      */
@@ -130,6 +178,25 @@ final class CheckDeadlocksCommand extends Command
                 $result->expires,
                 $result->location()
             ));
+        }
+    }
+
+    /**
+     * @param  array<int, DoctorIssue>  $issues
+     */
+    private function renderDoctorIssues(array $issues): void
+    {
+        foreach ($issues as $issue) {
+            $this->line(sprintf(
+                '- %s | %s:%d',
+                $issue->message,
+                $issue->file,
+                $issue->line
+            ));
+
+            if ($issue->suggestion !== null) {
+                $this->line('  '.$issue->suggestion);
+            }
         }
     }
 
@@ -150,6 +217,24 @@ final class CheckDeadlocksCommand extends Command
                 'method' => $result->method,
             ],
             array_values($results)
+        );
+    }
+
+    /**
+     * @param  array<int, DoctorIssue>  $issues
+     * @return array<int, array<string, int|string|null>>
+     */
+    private function doctorIssuesToArray(array $issues): array
+    {
+        return array_map(
+            static fn (DoctorIssue $issue): array => [
+                'type' => $issue->type,
+                'message' => $issue->message,
+                'file' => $issue->file,
+                'line' => $issue->line,
+                'suggestion' => $issue->suggestion,
+            ],
+            array_values($issues)
         );
     }
 }
