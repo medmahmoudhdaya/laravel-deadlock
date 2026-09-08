@@ -8,6 +8,7 @@ use Illuminate\Console\Command;
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Support\Facades\Artisan;
 use Zidbih\Deadlock\Middleware\DeadlockGuardMiddleware;
+use Zidbih\Deadlock\Scanner\DeadlockResult;
 use Zidbih\Deadlock\Scanner\DeadlockScanner;
 use Zidbih\Deadlock\Scanner\DoctorIssue;
 use Zidbih\Deadlock\Scanner\DoctorScanner;
@@ -26,6 +27,8 @@ final class DoctorDeadlocksCommand extends Command
         $this->renderHealthChecks();
         $this->section('Scan results');
 
+        $workarounds = [];
+
         try {
             $workarounds = $deadlockScanner->scan(app_path());
             $this->ok($this->countLabel(count($workarounds), 'supported workaround').' found');
@@ -43,6 +46,14 @@ final class DoctorDeadlocksCommand extends Command
 
         $this->warning($this->countLabel(count($issues), 'doctor issue').' found');
         $this->line('');
+
+        $expiredUnguarded = $this->expiredUnguardedWorkarounds($workarounds, $issues);
+
+        if ($expiredUnguarded !== []) {
+            $this->section('Expired unguarded workarounds');
+            $this->renderExpiredUnguardedWorkarounds($expiredUnguarded);
+            $this->line('');
+        }
 
         foreach ($this->groupByType($issues) as $type => $groupedIssues) {
             $this->section($this->heading($type));
@@ -194,6 +205,58 @@ ASCII;
     private function section(string $title): void
     {
         $this->line('<fg=cyan;options=bold>'.$title.':</>');
+    }
+
+    /**
+     * @param  DeadlockResult[]  $workarounds
+     * @param  DoctorIssue[]  $issues
+     * @return DeadlockResult[]
+     */
+    private function expiredUnguardedWorkarounds(array $workarounds, array $issues): array
+    {
+        $guardIssueLocations = [];
+
+        foreach ($issues as $issue) {
+            if ($issue->type === 'guard') {
+                $guardIssueLocations[$this->locationKey($issue->file, $issue->line)] = true;
+            }
+        }
+
+        return array_values(array_filter(
+            $workarounds,
+            fn (DeadlockResult $workaround): bool => $workaround->isExpired()
+                && isset($guardIssueLocations[$this->locationKey($workaround->file, $workaround->line)])
+        ));
+    }
+
+    /**
+     * @param  DeadlockResult[]  $workarounds
+     */
+    private function renderExpiredUnguardedWorkarounds(array $workarounds): void
+    {
+        foreach ($workarounds as $workaround) {
+            $this->line(sprintf(
+                '<fg=yellow>[WARN]</> <fg=gray>%s:%d</>',
+                $workaround->file,
+                $workaround->line
+            ));
+            $this->line('       This workaround is expired and is not protected by DeadlockGuard::check().');
+            $this->line('       <fg=green>'.$this->guardSuggestion($workaround).'</>');
+        }
+    }
+
+    private function guardSuggestion(DeadlockResult $workaround): string
+    {
+        if ($workaround->method !== null) {
+            return 'Add DeadlockGuard::check($this, __FUNCTION__) or remove the workaround.';
+        }
+
+        return 'Add DeadlockGuard::check($this) or remove the workaround.';
+    }
+
+    private function locationKey(string $file, int $line): string
+    {
+        return $file.':'.$line;
     }
 
     /**

@@ -57,6 +57,63 @@ PHP);
             ->expectsOutputToContain('Method-level workaround is not explicitly guarded.');
     }
 
+    public function test_doctor_command_highlights_expired_unguarded_workarounds(): void
+    {
+        $this->path = app_path('DoctorExpiredUnguarded.php');
+
+        File::put($this->path, <<<'PHP'
+<?php
+
+namespace App;
+
+use Zidbih\Deadlock\Attributes\Workaround;
+
+class DoctorExpiredUnguarded
+{
+    #[Workaround(description: 'Expired unguarded command issue', expires: '2020-01-01')]
+    public function run(): void
+    {
+    }
+}
+PHP);
+
+        $this->artisan('deadlock:doctor')
+            ->assertExitCode(1)
+            ->expectsOutputToContain('Expired unguarded workarounds')
+            ->expectsOutputToContain('This workaround is expired and is not protected by DeadlockGuard::check().')
+            ->expectsOutputToContain('Add DeadlockGuard::check($this, __FUNCTION__) or remove the workaround.')
+            ->expectsOutputToContain('Guard issues')
+            ->expectsOutputToContain('Method-level workaround is not explicitly guarded.');
+    }
+
+    public function test_doctor_command_does_not_highlight_guarded_expired_workarounds(): void
+    {
+        $this->path = app_path('DoctorExpiredGuarded.php');
+
+        File::put($this->path, <<<'PHP'
+<?php
+
+namespace App;
+
+use Zidbih\Deadlock\Attributes\Workaround;
+use Zidbih\Deadlock\Support\DeadlockGuard;
+
+class DoctorExpiredGuarded
+{
+    #[Workaround(description: 'Expired guarded command issue', expires: '2020-01-01')]
+    public function run(): void
+    {
+        DeadlockGuard::check($this, __FUNCTION__);
+    }
+}
+PHP);
+
+        $this->artisan('deadlock:doctor')
+            ->assertExitCode(0)
+            ->expectsOutputToContain('[OK]   No doctor issues found')
+            ->doesntExpectOutputToContain('Expired unguarded workarounds');
+    }
+
     public function test_doctor_command_succeeds_when_no_issues_are_found(): void
     {
         $this->path = app_path('DoctorCommandClean.php');
