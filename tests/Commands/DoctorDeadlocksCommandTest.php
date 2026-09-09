@@ -86,6 +86,31 @@ PHP);
             ->expectsOutputToContain('Method-level workaround is not explicitly guarded.');
     }
 
+    public function test_doctor_command_highlights_expired_unguarded_class_workarounds(): void
+    {
+        $this->path = app_path('DoctorExpiredUnguardedClass.php');
+
+        File::put($this->path, <<<'PHP'
+<?php
+
+namespace App;
+
+use Zidbih\Deadlock\Attributes\Workaround;
+
+#[Workaround(description: 'Expired unguarded class command issue', expires: '2020-01-01')]
+class DoctorExpiredUnguardedClass
+{
+}
+PHP);
+
+        $this->artisan('deadlock:doctor')
+            ->assertExitCode(1)
+            ->expectsOutputToContain('Expired unguarded workarounds')
+            ->expectsOutputToContain('This workaround is expired and is not protected by DeadlockGuard::check().')
+            ->expectsOutputToContain('Add DeadlockGuard::check($this) or remove the workaround.')
+            ->expectsOutputToContain('Class-level workaround is not explicitly guarded.');
+    }
+
     public function test_doctor_command_does_not_highlight_guarded_expired_workarounds(): void
     {
         $this->path = app_path('DoctorExpiredGuarded.php');
