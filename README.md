@@ -205,7 +205,9 @@ Example JSON output:
 ```json
 {
   "success": false,
+  "fail_within_days": null,
   "expired_count": 1,
+  "expiring_soon_count": 0,
   "expired": [
     {
       "description": "Temporary payment gateway workaround",
@@ -216,9 +218,12 @@ Example JSON output:
       "class": "PaymentService",
       "method": "process"
     }
-  ]
+  ],
+  "expiring_soon": []
 }
 ```
+
+With `--strict`, the JSON response also includes `doctor_issue_count` and `doctor_issues`.
 
 Example failure output:
 
@@ -238,6 +243,8 @@ php artisan deadlock:doctor
 ```
 
 The doctor command reports unsupported `#[Workaround]` targets, invalid attribute arguments, and missing or incorrect `DeadlockGuard::check(...)` calls for explicit runtime enforcement.
+
+When an expired workaround is also missing a valid guard, `doctor` highlights it in an **Expired unguarded workarounds** section before listing the detailed guard issues. This calls attention to expired code that local runtime checks cannot currently block.
 
 Example output:
 
